@@ -10,6 +10,10 @@ cp .env.example .env.local
 npm install
 npx playwright install chromium   # once, for the end-to-end tests
 npm run dev        # http://localhost:3000
+
+# Database (needs Docker and the Supabase CLI)
+npm run db:start   # local Supabase with all migrations and the demo seed
+npm run db:test    # database tests (RLS, plan limits, onboarding, storage, jobs)
 ```
 
 | URL | Section |

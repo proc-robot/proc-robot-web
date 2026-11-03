@@ -71,8 +71,9 @@ no `tailwind.config`), React Compiler (`reactCompiler: true`), shadcn/ui (`new-y
 (toasts). Tooling: ESLint, Prettier, Vitest, Playwright. **No translation library: the UI is
 English only.**
 
-**Planned (TASKS.md Phase 0 — not installed yet):** `@supabase/ssr` + `supabase-js` (T0.3.3).
-Hosting: Vercel `iad1`.
+**Database:** Supabase (Postgres 17) in `supabase/`: migrations, local seed, pgTAP tests — see
+"Database" below. **Planned (not installed yet):** `@supabase/ssr` + `supabase-js` in the app
+(T0.3.3). Hosting: Vercel `iad1`.
 
 Backend rules that shape every frontend change (see `../PLAN.md` → Recommended Tech Stack):
 
@@ -140,6 +141,14 @@ npm run format         # Prettier (+ Tailwind class sorting); format:check to ve
 npm run test           # Vitest unit tests (src/**/*.test.ts); test:watch while working
 npm run test:e2e       # Playwright (e2e/) against a production build on port 3210
 npm run icons          # favicon / app icons / manifest icons / og-default.png from the logo
+
+# Database (Docker + Supabase CLI)
+npm run db:start       # local Supabase; add `-x studio,edge-runtime` to skip the big images
+npm run db:reset       # re-apply every migration + supabase/seed.sql
+npm run db:test        # pgTAP tests in supabase/tests/database
+npm run db:lint        # plpgsql_check over public + private
+npm run db:types       # regenerate src/lib/supabase/database.types.ts after a schema change
+npm run db:stop
 ```
 
 - **Prettier** skips `src/components/ui/` (shadcn files stay exactly as the CLI writes them) and
@@ -161,6 +170,76 @@ Env: copy `.env.example` → `.env.local`.
   request; anything else serves a blanket `Disallow: /`. Indexing is opt-in so Vercel preview and
   staging deployments stay out of search results. After a production deploy, confirm with
   `curl -s https://proc-robot.com/robots.txt`.
+
+## Database (`supabase/`)
+
+Local URLs: API `http://127.0.0.1:54321`, Postgres `127.0.0.1:54322` (`postgres`/`postgres`), Mailpit
+(auth emails) `http://127.0.0.1:54324`. `supabase/seed.sql` creates the reference scenario (Kigen with
+Leo + Ratna, Acme, a Super Admin); the local sign-in details are in that file.
+
+**Migrations** live in `supabase/migrations/` (one file per area: foundation, platform reference,
+tenancy, projects, jobs, storage). Until the first hosted `supabase db push`, they can still be
+edited; after that, every change is a new migration. Data every environment needs (plans, settings,
+units, categories) goes in a migration; local demo data goes in `seed.sql`.
+
+**Rules for every migration** (the tests in `supabase/tests/database/01_schema.test.sql` enforce the
+first three):
+- Every table in `public` has **RLS enabled and explicit grants**: `revoke all … from anon,
+  authenticated`, then grant exactly what is needed. **`anon` gets nothing** — the public site never
+  queries the database.
+- Internal helpers go in the **`private`** schema (not exposed by the API). Postgres lets `PUBLIC`
+  execute new functions, so **every migration that creates functions in `private` ends with
+  `revoke execute on all functions in schema private from public;`**. Grant `execute` to
+  `authenticated` only for helpers that RLS policies call.
+- Public RPCs: `revoke execute … from public, anon; grant execute … to authenticated`.
+- Every function sets `search_path = ''` and schema-qualifies names.
+- **Tenant tables** follow `projects` / `customers`: `organization_id uuid not null default
+  public.auth_org_id()` (clients never send it, and it has no update grant); one policy per operation
+  on `organization_id = (select public.auth_org_id())` (always wrap the helpers in `select`);
+  Super Admin access through `(select public.is_super_admin())`; links to other tenant rows through a
+  **composite foreign key that includes `organization_id`**; the `private.audit_super_admin_write`
+  trigger; and isolation tests in `03_tenant_isolation.test.sql`.
+- **Membership, roles, plan and org status never change through table updates.** Only RPCs do
+  (`create_organization`, `accept_invite`, `invite_member`, …), and they read the tables, not the
+  JWT. Column-level grants keep these columns read-only to users.
+- **Plan limits are enforced in the database**, in triggers or RPCs (an advisory lock per org stops
+  races), so no path bypasses them. They raise `plan_limit_reached` with the limit's name in
+  `detail` (`active_projects`, `seats`). Other RPC errors raise a short code as the message:
+  `not_allowed`, `already_in_organization`, `invite_not_found`, `already_member`, `invalid_role`,
+  `invalid_email`, `no_organization`. The UI maps codes to messages.
+- **Background work**: inside the RPC, call `private.enqueue_job(org_id, queue, payload, credits)`,
+  which writes `ai_jobs` and sends the pgmq message in the same transaction.
+- **Audit**: `private.audit(action, org_id, target_type, target_id, metadata)` for sensitive
+  actions; `audit_logs` is append-only (even for `postgres`).
+
+**Auth claims.** The custom access token hook (`public.custom_access_token_hook`, enabled in
+`config.toml` and in each hosted project's Auth → Hooks) adds `org_id`, `org_role`, `app_role`,
+`plan` and `org_status` to the JWT; the RLS helpers `auth_org_id()`, `auth_org_role()`,
+`auth_is_org_admin()` and `is_super_admin()` read them. A suspended org gets no `org_id`. Claims
+only change when the session refreshes, so **after `create_organization`, `accept_invite` or a
+plan change the client calls `supabase.auth.refreshSession()`**.
+
+**Invites** are accepted by the invited, verified email address (Google or magic link proves it):
+`my_pending_invites()` lists them on the onboarding screen and `accept_invite(id)` joins. No secret
+token is stored. Pending invites hold a seat until accepted, revoked or expired (7 days).
+
+**Open projects** (`active` + `submitted`) count against the plan's `active_projects` limit;
+`won`, `lost` and `archived` don't.
+
+**Storage**: object paths start with the org id (`{org_id}/…`). Members write `spec-files` and
+`supplier-files`; Owner/Admin write `templates` and `item-images`; only the worker writes
+`generated-docs`. Size and MIME limits are set on the buckets.
+
+**Tests** (`npm run db:test`): one file per area in `supabase/tests/database/`. Each starts with
+`begin; \ir _helpers.psql` and ends with `rollback;`. The helpers create users and orgs and sign in
+through the real token hook: `tests.create_user(email)`, `tests.create_org(owner, name, plan)`,
+`tests.add_member(org, user, role)`, `tests.authenticate_as(user)`, `tests.clear_authentication()`.
+Pair every denied write with a check that the target row is intact, and filter Super Admin counts to
+the test's own orgs (the local seed data is present).
+
+**FX rates** refresh daily via `pg_cron` + `pg_net` (`private.request_fx_rates()` at 17:00 UTC,
+`private.store_fx_rates()` ten minutes later) from the ECB rates on the Frankfurter API; rates are
+stored as units per USD.
 
 ## Theme (`src/app/globals.css`, details in `../design/THEME.md`)
 
