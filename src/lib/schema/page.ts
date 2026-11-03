@@ -83,8 +83,5 @@ export function archiveGraph({
   crumbName: string;
   items: { name: string; path: string }[];
 }): Record<string, unknown> {
-  return graph(
-    collectionPage({ path, name, description, items }),
-    breadcrumb({ name: crumbName }),
-  );
+  return graph(collectionPage({ path, name, description, items }), breadcrumb({ name: crumbName }));
 }

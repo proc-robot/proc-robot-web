@@ -64,7 +64,10 @@ async function ogImage(): Promise<Buffer> {
   const W = 1200;
   const H = 630;
   const markSize = 300;
-  const mark = await sharp(SOURCE).resize(markSize, markSize, { kernel: "lanczos3" }).png().toBuffer();
+  const mark = await sharp(SOURCE)
+    .resize(markSize, markSize, { kernel: "lanczos3" })
+    .png()
+    .toBuffer();
 
   const text = Buffer.from(`
     <svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">

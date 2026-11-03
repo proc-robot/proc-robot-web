@@ -23,6 +23,7 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { FormatSwitcher } from "./FormatSwitcher";
 import { activeItem, isLive, type NavGroup } from "./types";
 
 export type FooterLink = { label: string; href: string; icon: LucideIcon };
@@ -105,10 +106,7 @@ export function SectionShell({
                           </SidebarMenuButton>
                         ) : (
                           <>
-                            <SidebarMenuButton
-                              disabled
-                              tooltip={`${item.label} (${item.phase})`}
-                            >
+                            <SidebarMenuButton disabled tooltip={`${item.label} (${item.phase})`}>
                               <item.icon />
                               <span>{item.label}</span>
                             </SidebarMenuButton>
@@ -136,6 +134,7 @@ export function SectionShell({
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
+            <FormatSwitcher />
             {/* Placeholder until Supabase Auth lands (TASKS.md T0.3): the
                 user's name, organization and a sign-out menu go here. */}
             <SidebarMenuItem>

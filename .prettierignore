@@ -1,0 +1,17 @@
+# Generated or vendored
+package-lock.json
+public/
+playwright-report/
+test-results/
+coverage/
+
+# shadcn/ui components stay exactly as the CLI writes them, so a later
+# `npx shadcn diff` shows real upstream changes, not formatting.
+src/components/ui/
+
+# Docs are hand-formatted (wide tables).
+*.md
+
+# Local editor/agent settings
+.claude/
+.mcp.json

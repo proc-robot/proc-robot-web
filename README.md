@@ -8,6 +8,7 @@ Queues) plus a Railway worker — see `../PLAN.md`.
 ```bash
 cp .env.example .env.local
 npm install
+npx playwright install chromium   # once, for the end-to-end tests
 npm run dev        # http://localhost:3000
 ```
 
@@ -20,7 +21,9 @@ npm run dev        # http://localhost:3000
 > ⚠️ The workspace and `/admin` have **no auth guard yet** (TASKS.md T0.3). Don't deploy them
 > publicly before it lands.
 
-Before committing: `npm run build && npm run lint`.
+Before committing: `npm run check && npm run build` (type check, lint, format check, unit tests,
+build). After changes to routing, layouts or interactive UI, also `npm run test:e2e` (Playwright,
+port 3210).
 
 Conventions for working in this repo are in [`CLAUDE.md`](./CLAUDE.md). Product scope:
 `../CORE_FEATURES.md`; build plan: `../PLAN.md`; progress: `../TASKS.md`; design: `../design/THEME.md`.

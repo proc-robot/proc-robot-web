@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app/AppShell";
+import { AppProviders } from "@/components/providers/AppProviders";
+import { getFormatPrefs } from "@/lib/format-server";
 import { BodyTheme } from "@/components/shared/BodyTheme";
 
 /**
@@ -15,11 +17,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <AppProviders formatPrefs={await getFormatPrefs()}>
       <BodyTheme theme="brand" />
       <AppShell>{children}</AppShell>
-    </>
+    </AppProviders>
   );
 }

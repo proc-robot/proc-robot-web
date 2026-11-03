@@ -17,12 +17,12 @@
   --font-public-sans: var(--font-public-sans);
 
   /* Core */
-  --color-pr-bg: #f7f5f0;               /* page background (cream) */
-  --color-pr-ink: #12242e;              /* primary text / dark surfaces (navy) */
-  --color-pr-accent: #0f6b57;           /* primary actions, links, focus */
+  --color-pr-bg: #f7f5f0; /* page background (cream) */
+  --color-pr-ink: #12242e; /* primary text / dark surfaces (navy) */
+  --color-pr-accent: #0f6b57; /* primary actions, links, focus */
   --color-pr-accent-hover: #0b4f40;
   --color-pr-accent-soft: #17957a;
-  --color-pr-warm: #9a5b2e;             /* secondary accent (was sp-donate) */
+  --color-pr-warm: #9a5b2e; /* secondary accent (was sp-donate) */
   --color-pr-warm-hover: #7e4922;
   --color-pr-destructive: #9a3b2e;
 
@@ -40,7 +40,7 @@
   /* Surfaces & tints */
   --color-pr-input-bg: #fcfbf8;
   --color-pr-success-tint: #e4f0eb;
-  --color-pr-warm-tint: #fcf6f0;        /* was sp-donate-tint */
+  --color-pr-warm-tint: #fcf6f0; /* was sp-donate-tint */
   --color-pr-warm-tint-strong: #f6ebdf; /* was sp-donate-tint-strong */
   --color-pr-neutral-chip: #f0ede6;
   --color-pr-disabled: #e7e3da;
@@ -49,10 +49,10 @@
 
   /* Proc-Robot logo colours (logo, illustrations, highlights on dark surfaces).
      Do NOT use logo teal for text on the cream background: contrast is too low. */
-  --color-pr-logo-teal: #43e2d0;        /* robot eyes/smile */
-  --color-pr-logo-navy: #102833;        /* robot face screen */
-  --color-pr-logo-shell: #f5f3ee;       /* robot head */
-  --color-pr-logo-ring: #dce8e5;        /* robot head outline */
+  --color-pr-logo-teal: #43e2d0; /* robot eyes/smile */
+  --color-pr-logo-navy: #102833; /* robot face screen */
+  --color-pr-logo-shell: #f5f3ee; /* robot head */
+  --color-pr-logo-ring: #dce8e5; /* robot head outline */
 }
 
 body {

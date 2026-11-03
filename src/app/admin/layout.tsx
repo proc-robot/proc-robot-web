@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { AppProviders } from "@/components/providers/AppProviders";
+import { getFormatPrefs } from "@/lib/format-server";
 
 /**
  * The Super Admin console. `robots.ts` already disallows `/admin/`, but
@@ -15,6 +17,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return <AdminShell>{children}</AdminShell>;
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AppProviders formatPrefs={await getFormatPrefs()}>
+      <AdminShell>{children}</AdminShell>
+    </AppProviders>
+  );
 }

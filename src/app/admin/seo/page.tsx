@@ -37,7 +37,10 @@ export default function AdminSeoPage() {
     {
       header: "Page",
       cell: (row) => (
-        <Link href={`/admin/seo/${row.key}`} className="font-medium underline-offset-4 hover:underline">
+        <Link
+          href={`/admin/seo/${row.key}`}
+          className="font-medium underline-offset-4 hover:underline"
+        >
           {row.label}
         </Link>
       ),
@@ -89,7 +92,11 @@ function LengthCell({
       <p
         className={cn(
           "text-xs",
-          over ? "font-medium text-destructive" : short ? "font-medium text-amber-600" : "text-muted-foreground",
+          over
+            ? "font-medium text-destructive"
+            : short
+              ? "font-medium text-amber-600"
+              : "text-muted-foreground",
         )}
       >
         {value.length} / {range.max}

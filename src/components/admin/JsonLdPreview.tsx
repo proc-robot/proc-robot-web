@@ -97,8 +97,7 @@ export function JsonLdPreview({ path }: { path: string }) {
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const liveUrl =
-    typeof window === "undefined" ? path : new URL(path, window.location.origin).href;
+  const liveUrl = typeof window === "undefined" ? path : new URL(path, window.location.origin).href;
 
   return (
     <div className="space-y-3">

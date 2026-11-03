@@ -27,9 +27,4 @@ export {
 } from "./core";
 
 export { orgGraph } from "./organization";
-export {
-  archiveGraph,
-  breadcrumbOnlyGraph,
-  webPageGraph,
-  type WebPageType,
-} from "./page";
+export { archiveGraph, breadcrumbOnlyGraph, webPageGraph, type WebPageType } from "./page";

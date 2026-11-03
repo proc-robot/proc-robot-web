@@ -58,16 +58,21 @@ One Next.js app, three sections. They never share chrome.
   `/admin` is not highlighted on every `/admin/*` page.
 - The nav config holds icon components, which cannot be passed from a Server Component as props —
   that is why `AppShell`/`AdminShell` are Client Components that import their own config.
-- The sidebar footer shows a "Not signed in" placeholder; the user/org menu goes there with auth.
+- The sidebar footer holds the number & date format picker (`FormatSwitcher`, both sections) and a
+  "Not signed in" placeholder; the user/org menu replaces the placeholder with auth (T0.1.8).
+- A unit test (`navigation/nav.test.ts`) fails if a live nav entry has no `page.tsx`, a later-phase
+  entry has one, or an href repeats.
 
 ## Stack
 
 **In the repo now:** Next.js 16 App Router, React 19, TypeScript, Tailwind v4 (CSS-first `@theme`,
 no `tailwind.config`), React Compiler (`reactCompiler: true`), shadcn/ui (`new-york`, zinc base,
-`radix-ui`), lucide icons, `nextjs-toploader`.
+`radix-ui`), lucide icons, `nextjs-toploader`, TanStack Query, Zod 4, React Hook Form, sonner
+(toasts). Tooling: ESLint, Prettier, Vitest, Playwright. **No translation library: the UI is
+English only.**
 
-**Planned (TASKS.md Phase 0 — not installed yet):** `@supabase/ssr` + `supabase-js`, `next-intl`
-(en → id), TanStack Query, Zod, React Hook Form. Hosting: Vercel `iad1`.
+**Planned (TASKS.md Phase 0 — not installed yet):** `@supabase/ssr` + `supabase-js` (T0.3.3).
+Hosting: Vercel `iad1`.
 
 Backend rules that shape every frontend change (see `../PLAN.md` → Recommended Tech Stack):
 
@@ -117,20 +122,34 @@ Code Style:
 - Client Components only when required
 
 Workflow:
-- After making changes, verify with `npm run build` and `npm run lint` — these are sufficient for correctness checking.
+- After making changes, run `npm run check` (typecheck + lint + format check + unit tests) and
+  `npm run build`. For changes to routing, metadata, layouts or anything interactive, also run
+  `npm run test:e2e`.
 
 ## Commands
 
 ```bash
 npm install
+npx playwright install chromium   # once per machine, for test:e2e
 npm run dev            # http://localhost:3000
 npm run build          # also runs the TS typecheck
+npm run check          # typecheck + lint + format:check + test (what CI runs)
+npm run typecheck      # tsc --noEmit
 npm run lint
+npm run format         # Prettier (+ Tailwind class sorting); format:check to verify only
+npm run test           # Vitest unit tests (src/**/*.test.ts); test:watch while working
+npm run test:e2e       # Playwright (e2e/) against a production build on port 3210
 npm run icons          # favicon / app icons / manifest icons / og-default.png from the logo
 ```
 
-No automated tests yet (Vitest/Playwright are TASKS.md T0.1.7) — verify by building and by
-exercising the pages under `npm run dev`.
+- **Prettier** skips `src/components/ui/` (shadcn files stay exactly as the CLI writes them) and
+  Markdown. Node 22 (`@types/node` 22).
+- **Unit tests** run in Node and cover pure code: SEO metadata, JSON-LD, the page registry,
+  formatting, form helpers and nav ↔ page consistency. Put a test next to the
+  file it tests (`foo.ts` → `foo.test.ts`). Component tests would add `jsdom` + Testing Library.
+- **E2E tests** (`e2e/`) build and start the app on port **3210** (`E2E_PORT` to change it).
+  Locally, Playwright reuses whatever already listens on that port without checking what it is, so
+  keep it free.
 
 Env: copy `.env.example` → `.env.local`.
 
@@ -303,12 +322,74 @@ Navigation loading is a single global `<NextTopLoader>` (accent green `#0F6B57`)
 `src/app/layout.tsx`. **There are no per-route `loading.tsx` files** — don't add them. Job progress
 (extraction, discovery, rendering) is shown from Realtime on `ai_jobs`, not with route loading UI.
 
+## Formatting: money and dates (`src/lib/format.ts`)
+
+- **The UI is English only — no translations, no message files, no locale in the URL.** What
+  varies per user is the **format** of numbers and dates:
+
+  | Format | Money | Date | Date + time |
+  |---|---|---|---|
+  | `en-US` (default) | USD 1,234.50 · IDR 1,500,000 | Nov 4, 2026 | Nov 4, 2026, 14:05 UTC |
+  | `en-ID` | USD 1.234,50 · IDR 1.500.000 | 4 Nov 2026 | 4 Nov 2026, 14.05 WIB |
+
+  `en-ID` keeps English month names (`id-ID` would print "Agu", "Okt", "Des"). To offer another
+  format, add it to `FORMAT_LOCALES` / `FORMAT_LOCALE_NAMES` and to the tests.
+- **Get a formatter, then call `money` / `date` / `calendarDate` / `dateTime`:**
+  - Server Components and Server Actions: `const format = await getFormatter()`
+    (`src/lib/format-server.ts`).
+  - Client Components: `const format = useFormatter()` (`components/providers/FormatProvider.tsx`).
+  - No signed-in user (public site, emails): `createFormatter()` with the defaults.
+- **Never** `toLocaleString()`, `Intl.*` inline, or hand-built strings for money and dates.
+- **Money:** `format.money(amount, currency)` shows the ISO code, not a symbol ("$" is both USD and
+  SGD). IDR has no decimals. Display only — every money figure comes from `calculate_quotation()`.
+- **Dates:** `format.date(timestamptz)` converts into the user's time zone; `format.calendarDate(
+  "2026-11-04")` is for `date` columns (validity, deadlines) and never shifts. Times are 24-hour
+  with the zone shown.
+- **The preference** lives in the `format_locale` cookie, set by `setFormatLocale()`
+  (`src/lib/format-actions.ts`) from the sidebar picker. The `(app)` and `admin` layouts read it with
+  `getFormatPrefs()` and pass it to `AppProviders`, so server and client format the same way. With
+  auth: sign-in copies `profiles.format_locale` into the cookie, the profile page edits both, and the
+  time zone comes from `profiles.timezone` (UTC until then, T1.1.1).
+- Reading the cookie renders a route per request. That is fine for the workspace and `/admin`;
+  **never call `getFormatPrefs()` / `getFormatter()` on the public site**, which stays static.
+
+## Forms, Server Actions, data fetching, toasts
+
+- **Forms:** React Hook Form + `zodResolver` + the shadcn **`Field`** components (`FieldGroup`,
+  `Field`, `FieldLabel`, `FieldDescription`, `FieldError`) through RHF's `Controller`; put
+  `data-invalid` on `Field` and `aria-invalid` on the control. The schema lives next to the action
+  and is shared by the form (instant feedback) and the action (the real check).
+- **Server Actions return `ActionResult<T>`** (`src/lib/forms/action-result.ts`) instead of
+  throwing: `actionOk(data)`, `actionError(message)`, or `invalidInput(zodError, message)` after a
+  failed `safeParse`. Always re-validate on the server; a Server Action is a public endpoint.
+- **On the client**, `applyActionErrors(form, result)` puts each field error under its field (RHF
+  dot paths, e.g. `items.0.quantity`) and toasts the message.
+
+```tsx
+// action (server):  const parsed = schema.safeParse(input);
+//                   if (!parsed.success) return invalidInput(parsed.error);
+//                   const { data, error } = await supabase.rpc("create_project", parsed.data);
+//                   return error ? actionError("Could not create the project.") : actionOk({ id: data });
+// form (client):    const result = await createProject(values);
+//                   if (!result.ok) return applyActionErrors(form, result);
+```
+
+- **Data fetching:** pages read in Server Components (supabase-js with the user's session); writes go
+  through Server Actions. **TanStack Query** (`AppProviders`) is for data the browser keeps fresh by
+  itself — job progress next to Realtime, polling, search-as-you-type. Don't wrap ordinary page
+  loads in `useQuery`.
+- **Toasts:** `toast.success()` / `toast.error()` from `sonner`. The `<Toaster>` lives in
+  `AppProviders` (workspace + admin), not on the public site.
+- The old Swillfam `form-fields` (uncontrolled inputs + `useFormStatus`) suit simple admin forms that
+  post `FormData`; use the RHF pattern for everything else.
+
 ## Admin building blocks (`src/components/admin/`)
 
 Kept from Swillfam, Prisma-free, zinc-styled — use these instead of re-implementing:
 `AdminTable` (`columns`/`getKey`/`empty`), `PageHeader` / `EditHeader` / `Card`, `SearchInput`,
 `Pagination`, `form-fields` (`Field`, `TextareaField`, `CheckboxField`, `SelectField`, `SaveButton`,
-…), `MultiSelectField`, `ConfirmDeleteButton`, `Toast`, `SeoDetailsPanel`, `JsonLdPreview`.
+…), `MultiSelectField`, `ConfirmDeleteButton`, `SeoDetailsPanel`, `JsonLdPreview`. Toasts come from
+`sonner` (see above).
 
 **Every admin list page includes:**
 1. **Search** — `SearchInput` above the `Card`. It filters on typing (debounced 300ms, min 3 chars)

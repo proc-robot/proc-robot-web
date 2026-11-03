@@ -35,7 +35,9 @@ function SearchInputInner({ placeholder }: { placeholder: string }) {
         router.push("?");
       }, 300);
     }
-    return () => { if (timer.current) clearTimeout(timer.current); };
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
   }, [value, router]);
 
   function clear() {
@@ -45,19 +47,19 @@ function SearchInputInner({ placeholder }: { placeholder: string }) {
 
   return (
     <div className="relative mb-6">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+      <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
         minLength={3}
-        className="pl-9 pr-9 bg-white"
+        className="bg-white pr-9 pl-9"
       />
       {value && (
         <button
           type="button"
           onClick={clear}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground hover:text-foreground"
         >
           <X className="h-4 w-4" />
         </button>
@@ -68,7 +70,7 @@ function SearchInputInner({ placeholder }: { placeholder: string }) {
 
 export function SearchInput(props: { placeholder: string }) {
   return (
-    <Suspense fallback={<div className="h-9 mb-6" />}>
+    <Suspense fallback={<div className="mb-6 h-9" />}>
       <SearchInputInner {...props} />
     </Suspense>
   );

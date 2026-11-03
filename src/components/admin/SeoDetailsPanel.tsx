@@ -52,15 +52,15 @@ export function SeoDetailsPanel({
       </section>
 
       <section className="space-y-3 border-t border-zinc-200 pt-6">
-          <Heading
-            title="Structured data"
-            hint="Fetched from the live page, so this is exactly what a crawler receives — not a simulation."
-          />
-          {unavailableReason ? (
-            <p className="text-sm text-zinc-500">{unavailableReason}</p>
-          ) : (
-            <JsonLdPreview path={publicPath} />
-          )}
+        <Heading
+          title="Structured data"
+          hint="Fetched from the live page, so this is exactly what a crawler receives — not a simulation."
+        />
+        {unavailableReason ? (
+          <p className="text-sm text-zinc-500">{unavailableReason}</p>
+        ) : (
+          <JsonLdPreview path={publicPath} />
+        )}
       </section>
     </div>
   );
@@ -69,7 +69,7 @@ export function SeoDetailsPanel({
 function Heading({ title, hint }: { title: string; hint: string }) {
   return (
     <div className="space-y-1">
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-500">{title}</h2>
+      <h2 className="text-xs font-semibold tracking-widest text-zinc-500 uppercase">{title}</h2>
       <p className="text-xs text-zinc-400">{hint}</p>
     </div>
   );
@@ -171,7 +171,7 @@ function ImageRow({ resolved }: { resolved: ResolvedSeo }) {
             alt=""
             className="h-20 w-36 border border-zinc-200 bg-zinc-100 object-cover"
           />
-          <code className="break-all bg-zinc-50 px-2 py-1 font-mono text-xs text-zinc-700">
+          <code className="bg-zinc-50 px-2 py-1 font-mono text-xs break-all text-zinc-700">
             {resolved.value}
           </code>
         </div>
