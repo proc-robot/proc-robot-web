@@ -171,6 +171,15 @@ Env: copy `.env.example` → `.env.local`.
   staging deployments stay out of search results. After a production deploy, confirm with
   `curl -s https://proc-robot.com/robots.txt`.
 
+## Git
+
+- **Branches:** `phase-<n>/<title>`, lower-case with hyphens — one branch per batch of TASKS.md work,
+  e.g. `phase-0/frontend-scaffold`, `phase-0/supabase-init`. `main` holds merged work.
+- **Commit subjects start with the TASKS.md ids they complete:** one id, a range or a list —
+  `T0.2.2–T0.5.3: Supabase local database`, `T0.3.4, T0.3.5: Auth hook`. Commits that complete no
+  task have no prefix.
+- What is done (and when) is recorded by the ticks and dates in `../TASKS.md`, not in branch names.
+
 ## Database (`supabase/`)
 
 Local URLs: API `http://127.0.0.1:54321`, Postgres `127.0.0.1:54322` (`postgres`/`postgres`), Mailpit
