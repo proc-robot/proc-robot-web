@@ -189,7 +189,11 @@ Env: copy `.env.example` → `.env.local`.
     --fail-on warning`, and fails if `database.types.ts` is out of date (**run `npm run db:types`
     after every migration**);
   - `e2e` runs Playwright on a local stack, with the worker repo when the `REPOS_READ_TOKEN`
-    secret exists (`../SETUP_ACCOUNT.md` §2).
+    secret exists (`../SETUP_ACCOUNT.md` §2). It checks out the worker's branch with **the same
+    name** if there is one, otherwise the worker's `main`.
+
+  **A change that spans both repos** (e.g. a new queue here and its handler in the worker) uses the
+  same branch name in both repos, so each repo's CI tests the pair.
 
   The Supabase CLI version is pinned in the workflow (`SUPABASE_CLI_VERSION`); keep it equal to the
   local one, or the generated types will differ.

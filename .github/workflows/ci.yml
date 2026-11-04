@@ -4,7 +4,8 @@
 #             and generated types that match the schema
 # - e2e:      Playwright against a production build on a local Supabase stack,
 #             with the worker from the sibling repo when REPOS_READ_TOKEN is set
-#             (SETUP_ACCOUNT.md §2); without it the worker check is skipped.
+#             (SETUP_ACCOUNT.md §2): its branch with the same name if there is
+#             one, else its main. Without the token the worker check is skipped.
 # No hosted secrets are needed: everything runs on a local Supabase stack.
 name: CI
 
@@ -87,12 +88,31 @@ jobs:
       - uses: actions/checkout@v5
         with:
           path: proc-robot-web
+      # A change that spans both repos uses the same branch name in each, so CI
+      # tests the pair; otherwise the worker's main.
+      - name: Pick the worker branch
+        id: worker-ref
+        if: env.REPOS_READ_TOKEN != ''
+        working-directory: .
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+          REPO: ${{ github.repository_owner }}/proc-robot-worker
+        run: |
+          url="https://x-access-token:${REPOS_READ_TOKEN}@github.com/${REPO}.git"
+          if git ls-remote --exit-code --heads "$url" "refs/heads/$BRANCH" > /dev/null; then
+            ref="$BRANCH"
+          else
+            ref=main
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "::notice::Worker checked out from its '$ref' branch."
       - name: Check out the worker
         if: env.REPOS_READ_TOKEN != ''
         uses: actions/checkout@v5
         with:
           repository: ${{ github.repository_owner }}/proc-robot-worker
           token: ${{ env.REPOS_READ_TOKEN }}
+          ref: ${{ steps.worker-ref.outputs.ref }}
           path: proc-robot-worker
       - name: No worker repo access
         if: env.REPOS_READ_TOKEN == ''
@@ -108,10 +128,18 @@ jobs:
           version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - run: npm ci
+      # Without a package.json the worker spec skips itself (e2e/support/worker.ts).
       - name: Install the worker
         if: env.REPOS_READ_TOKEN != ''
-        run: npm ci
         working-directory: proc-robot-worker
+        env:
+          WORKER_REF: ${{ steps.worker-ref.outputs.ref }}
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "::warning::The worker's '$WORKER_REF' branch has no code yet; e2e/worker.spec.ts will be skipped."
+          fi
       - name: Install Playwright's Chromium
         run: npx playwright install --with-deps chromium
 
