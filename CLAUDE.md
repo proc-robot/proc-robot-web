@@ -183,6 +183,16 @@ Env: copy `.env.example` → `.env.local`.
   `T0.2.2–T0.5.3: Supabase local database`, `T0.3.4, T0.3.5: Auth hook`. Commits that complete no
   task have no prefix.
 - What is done (and when) is recorded by the ticks and dates in `../TASKS.md`, not in branch names.
+- **CI** (`.github/workflows/ci.yml`) runs on every pull request and on `main`:
+  - `checks` runs `npm run check` and the production build;
+  - `database` starts Supabase from scratch, then runs `supabase test db`, `supabase db lint
+    --fail-on warning`, and fails if `database.types.ts` is out of date (**run `npm run db:types`
+    after every migration**);
+  - `e2e` runs Playwright on a local stack, with the worker repo when the `REPOS_READ_TOKEN`
+    secret exists (`../SETUP_ACCOUNT.md` §2).
+
+  The Supabase CLI version is pinned in the workflow (`SUPABASE_CLI_VERSION`); keep it equal to the
+  local one, or the generated types will differ.
 
 ## Auth (`src/proxy.ts`, `src/lib/auth/`, `src/lib/supabase/`)
 
