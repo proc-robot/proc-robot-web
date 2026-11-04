@@ -1,0 +1,18 @@
+<!-- Confirmation email for a first sign-in (a new account). {{ .RedirectTo }} is the app's /auth/confirm URL (sent by
+     sendMagicLink), which exchanges the token hash for a session. -->
+<div style="font-family: Arial, Helvetica, sans-serif; color: #12242e; background: #f7f5f0; padding: 32px;">
+  <div style="max-width: 480px; margin: 0 auto; background: #ffffff; border: 1px solid #e4dfd5; border-radius: 14px; padding: 32px;">
+    <p style="margin: 0 0 24px; font-size: 18px; font-weight: bold;">Proc-Robot</p>
+    <h1 style="margin: 0 0 12px; font-size: 22px; font-weight: normal;">Welcome to Proc-Robot</h1>
+    <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.5; color: #5c6a6e;">
+      Use the button below to confirm your email and sign in. The link works once and expires in one hour.
+    </p>
+    <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email"
+       style="display: inline-block; background: #0f6b57; color: #ffffff; text-decoration: none; padding: 12px 20px; border-radius: 8px; font-size: 15px; font-weight: bold;">
+      Sign in
+    </a>
+    <p style="margin: 24px 0 0; font-size: 13px; line-height: 1.5; color: #7a8a8f;">
+      If you didn't ask to sign in, you can ignore this email.
+    </p>
+  </div>
+</div>

@@ -46,3 +46,6 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Playwright sessions (auth.setup.ts)
+/playwright/.auth/

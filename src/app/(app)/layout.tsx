@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { SIGN_IN_PATH } from "@/lib/auth/routes";
 import { AppShell } from "@/components/app/AppShell";
 import { AppProviders } from "@/components/providers/AppProviders";
+import { getAccount, requireMember } from "@/lib/auth/session";
 import { getFormatPrefs } from "@/lib/format-server";
 import { BodyTheme } from "@/components/shared/BodyTheme";
 
@@ -9,8 +12,8 @@ import { BodyTheme } from "@/components/shared/BodyTheme";
  * lands in src/proxy.ts). Never indexed: robots.txt is only a crawl hint, so
  * the `noindex` here is what keeps a linked workspace URL out of search.
  *
- * NO AUTH GUARD YET — the Supabase session check arrives with TASKS.md
- * T0.3.3 / T0.3.7. Do not deploy this anywhere public before then.
+ * Signed-in members only: src/proxy.ts redirects everyone else, and
+ * requireMember() checks again here. RLS scopes every query to the org.
  */
 export const metadata: Metadata = {
   title: { template: "%s · Proc-Robot", default: "Proc-Robot" },
@@ -18,10 +21,14 @@ export const metadata: Metadata = {
 };
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  await requireMember();
+  const account = await getAccount();
+  if (!account) redirect(SIGN_IN_PATH);
+
   return (
     <AppProviders formatPrefs={await getFormatPrefs()}>
       <BodyTheme theme="brand" />
-      <AppShell>{children}</AppShell>
+      <AppShell account={account}>{children}</AppShell>
     </AppProviders>
   );
 }

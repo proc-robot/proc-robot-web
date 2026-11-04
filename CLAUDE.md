@@ -36,11 +36,8 @@ One Next.js app, three sections. They never share chrome.
 - **Domains (planned, Phase 0):** `proc-robot.com` serves the public section; `app.proc-robot.com`
   serves the workspace and `/admin`, via host routing in `src/proxy.ts`. That is why workspace
   paths carry no prefix (`/projects`, not `/app/projects`).
-- **⚠️ There is no auth guard yet.** The Supabase session check and the `app_role` check arrive with
-  TASKS.md T0.3.3 / T0.3.5 / T0.3.7. **Do not deploy the workspace or `/admin` anywhere public before
-  then.** When it lands: a Next 16 `src/proxy.ts` (it must live in `src/`, next to `app/` — at the repo
-  root Next silently ignores it) for the redirect, **plus** a check at the top of every page and
-  every Server Action. The proxy is only the first line; Server Actions are separate entry points.
+- **Sign-in and onboarding** live in `src/app/(auth)/` (`/sign-in`, `/onboarding`): brand look, no
+  sidebar, `noindex`. See "Auth" below for the guard.
 
 ### Sidebars (`(app)` and `/admin`)
 
@@ -72,8 +69,7 @@ no `tailwind.config`), React Compiler (`reactCompiler: true`), shadcn/ui (`new-y
 English only.**
 
 **Database:** Supabase (Postgres 17) in `supabase/`: migrations, local seed, pgTAP tests — see
-"Database" below. **Planned (not installed yet):** `@supabase/ssr` + `supabase-js` in the app
-(T0.3.3). Hosting: Vercel `iad1`.
+"Database" below. The app talks to it with `@supabase/ssr` + `supabase-js`. Hosting: Vercel `iad1`.
 
 Backend rules that shape every frontend change (see `../PLAN.md` → Recommended Tech Stack):
 
@@ -85,8 +81,8 @@ Backend rules that shape every frontend change (see `../PLAN.md` → Recommended
   a selling price, margin, tax or total in TypeScript, on the client or the server.
 - **Server Actions stay thin**: validate input, call `supabase-js`/an RPC with the user's session,
   `revalidatePath`/`redirect`. No business logic in them.
-- **No Route Handlers for business logic.** The only one is `/auth/callback` (OAuth). Stripe lives
-  in Supabase Edge Functions, not here.
+- **No Route Handlers for business logic.** The only two finish a sign-in: `/auth/callback`
+  (Google) and `/auth/confirm` (magic links). Stripe lives in Supabase Edge Functions, not here.
 - **The service-role/secret key never appears in this app.** Only `NEXT_PUBLIC_SUPABASE_URL` and the
   publishable key.
 - **Long work is never done in a request.** Extraction, price discovery, rendering and email go
@@ -111,7 +107,9 @@ UI Strategy:
   CLI has written `import { cn } from "cn"` instead of `@/lib/utils` before.
 
 Icons:
-- **`lucide-react` only** (it is the shadcn `iconLibrary` in `components.json`). No Phosphor.
+- **`lucide-react` only** (it is the shadcn `iconLibrary` in `components.json`). No Phosphor. The one
+  exception is `components/auth/GoogleIcon.tsx`: Google's branding rules require its "G" on the
+  sign-in button, and lucide has no brand logos.
 
 Documentation:
 - Always query Context7 before using third-party libraries.
@@ -158,7 +156,11 @@ npm run db:stop
   file it tests (`foo.ts` → `foo.test.ts`). Component tests would add `jsdom` + Testing Library.
 - **E2E tests** (`e2e/`) build and start the app on port **3210** (`E2E_PORT` to change it).
   Locally, Playwright reuses whatever already listens on that port without checking what it is, so
-  keep it free.
+  keep it free. They need the local Supabase stack (`npm run db:start`): `e2e/auth.setup.ts` signs
+  the seeded users in through real magic links read from Mailpit and saves their sessions
+  (`MEMBER_STATE`, `ADMIN_STATE` in `e2e/support/auth.ts`); a spec opts in with
+  `test.use({ storageState: MEMBER_STATE })`. Sign-up tests leave `e2e-*@example.test` users in the
+  local database; `npm run db:reset` clears them.
 
 Env: copy `.env.example` → `.env.local`.
 
@@ -179,6 +181,34 @@ Env: copy `.env.example` → `.env.local`.
   `T0.2.2–T0.5.3: Supabase local database`, `T0.3.4, T0.3.5: Auth hook`. Commits that complete no
   task have no prefix.
 - What is done (and when) is recorded by the ticks and dates in `../TASKS.md`, not in branch names.
+
+## Auth (`src/proxy.ts`, `src/lib/auth/`, `src/lib/supabase/`)
+
+- **Sign-in:** Google (A1) or an emailed magic link (A2), both on `/sign-in`. The first sign-in
+  creates the account; a user without an organization is sent to `/onboarding` (join an invite or
+  create one, and answer "What do you mainly create?"). Google needs the OAuth client from
+  TASKS.md T0.3.1 — until then, use the email link (locally the email lands in Mailpit,
+  `http://127.0.0.1:54324`).
+- **Three layers, never just one:**
+  1. `src/proxy.ts` (Next 16's middleware; it must live in `src/`): refreshes the session and
+     redirects — workspace needs an org, `/admin` needs a Super Admin, `/sign-in` and
+     `/onboarding` are skipped when there is nothing to do. Marketing pages skip it entirely and
+     stay static. **A new workspace section must be added to `WORKSPACE_PREFIXES`** in
+     `src/lib/auth/routes.ts` (a unit test fails otherwise).
+  2. The section layouts call `requireMember()` / `requireSuperAdmin()`, and **every Server Action
+     starts with `requireUser()` / `requireMember()`** (`src/lib/auth/session.ts`): an action is its
+     own entry point and never relies on the proxy.
+  3. RLS on every query.
+- **Supabase clients:** `@/lib/supabase/server` (Server Components, Actions, Route Handlers — acts as
+  the user), `@/lib/supabase/client` (Client Components: Realtime, uploads). Both are typed with
+  `database.types.ts`. Never the secret key.
+- **Claims** (`getClaims()` in `session.ts`, typed in `claims.ts`) carry `org_id`, `org_role`,
+  `app_role`, `plan`. They only change when the session refreshes, so any action that changes them
+  (creating or joining an org) calls `supabase.auth.refreshSession()` before redirecting.
+- **Redirect targets** from the URL (`?next=`) always pass through `safeNextPath()`.
+- **RPC errors** become messages with `rpcErrorMessage()` (`src/lib/forms/rpc-errors.ts`).
+- Signing in copies the profile's `format_locale` into the format cookie, and changing the format
+  saves it to the profile.
 
 ## Database (`supabase/`)
 

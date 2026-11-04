@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserRound, type LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -23,6 +23,8 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import type { Account } from "@/lib/auth/session";
+import { AccountMenu } from "./AccountMenu";
 import { FormatSwitcher } from "./FormatSwitcher";
 import { activeItem, isLive, type NavGroup } from "./types";
 
@@ -44,6 +46,7 @@ export function SectionShell({
   homeHref,
   groups,
   footerLinks = [],
+  account,
   className,
   children,
 }: {
@@ -52,6 +55,8 @@ export function SectionShell({
   homeHref: string;
   groups: NavGroup[];
   footerLinks?: FooterLink[];
+  /** The signed-in user, loaded by the section's layout. */
+  account: Account;
   className?: string;
   children: React.ReactNode;
 }) {
@@ -135,17 +140,7 @@ export function SectionShell({
               </SidebarMenuItem>
             ))}
             <FormatSwitcher />
-            {/* Placeholder until Supabase Auth lands (TASKS.md T0.3): the
-                user's name, organization and a sign-out menu go here. */}
-            <SidebarMenuItem>
-              <SidebarMenuButton size="lg" tooltip="Not signed in" className="cursor-default">
-                <UserRound />
-                <span className="grid leading-tight">
-                  <span className="text-sm">Not signed in</span>
-                  <span className="text-xs opacity-70">Sign-in arrives in Phase 0</span>
-                </span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            <AccountMenu account={account} />
           </SidebarMenu>
         </SidebarFooter>
         <SidebarRail />

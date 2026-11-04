@@ -54,16 +54,17 @@ select results_eq(
 
 -- ---------------------------------------------------------------- FX rates
 -- Simulate the HTTP response pg_net would store for the morning request.
+-- A date long past, so real rates from a live refresh never mix in.
 insert into net._http_response (id, status_code, content_type, content, timed_out)
 values (-42, 200, 'application/json',
-        '{"amount": 1.0, "base": "USD", "date": "2026-11-03",
+        '{"amount": 1.0, "base": "USD", "date": "2000-01-03",
           "rates": {"SGD": 1.2812, "IDR": 18137, "EUR": 0.89453}}', false);
 insert into private.fx_requests (request_id) values (-42);
 
 select is(private.store_fx_rates(), 4, 'store_fx_rates writes each rate plus USD itself');
 select results_eq(
   $$select currency || '=' || per_usd::float8 from public.fx_rates
-    where as_of = '2026-11-03' order by currency$$,
+    where as_of = '2000-01-03' order by currency$$,
   array['EUR=0.89453', 'IDR=18137', 'SGD=1.2812', 'USD=1'],
   'rates are stored per USD for the API''s date'
 );

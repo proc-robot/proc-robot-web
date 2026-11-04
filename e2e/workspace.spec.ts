@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { ADMIN_STATE, MEMBER_STATE } from "./support/auth";
 
 test.describe("workspace", () => {
+  test.use({ storageState: MEMBER_STATE });
+
   test("sidebar marks the current page and the section is not indexed", async ({ page }) => {
     await page.goto("/projects");
 
@@ -18,13 +21,22 @@ test.describe("workspace", () => {
     );
   });
 
+  // Ratna's profile starts on en-ID (seed.sql); the test ends there too, so
+  // reruns start from the same state.
   test("the number & date format can be switched and is remembered", async ({ page }) => {
     await page.goto("/dashboard");
-    await page.getByRole("button", { name: "Number and date format: United States" }).click();
+    const formatButton = page.getByRole("button", { name: /^Number and date format:/ });
+
+    await formatButton.click();
+    await page.getByRole("menuitemradio", { name: /United States/ }).click();
+    await expect(
+      page.getByRole("button", { name: "Number and date format: United States" }),
+    ).toBeVisible();
+
+    await formatButton.click();
     const indonesia = page.getByRole("menuitemradio", { name: /Indonesia/ });
     await expect(indonesia).toContainText("USD 1.234,50 · 4 Nov 2026");
     await indonesia.click();
-
     await expect(
       page.getByRole("button", { name: "Number and date format: Indonesia" }),
     ).toBeVisible();
@@ -35,8 +47,12 @@ test.describe("workspace", () => {
     // The UI itself stays English.
     await expect(page.getByRole("heading", { level: 1, name: "Dashboard" })).toBeVisible();
   });
+});
 
-  test("the Super Admin console shares the same format preference", async ({
+test.describe("Super Admin console", () => {
+  test.use({ storageState: ADMIN_STATE });
+
+  test("opens for platform staff and shares the format preference", async ({
     page,
     context,
     baseURL,
@@ -53,7 +69,7 @@ test.describe("workspace", () => {
 });
 
 test.describe("workspace on a phone", () => {
-  test.use({ viewport: { width: 390, height: 844 } });
+  test.use({ storageState: MEMBER_STATE, viewport: { width: 390, height: 844 } });
 
   test("the sidebar opens as a sheet", async ({ page }) => {
     await page.goto("/projects");
