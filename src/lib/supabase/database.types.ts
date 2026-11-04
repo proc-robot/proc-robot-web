@@ -241,6 +241,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"worker_heartbeats": {
+                  Row: {
+                    "beat_at": string,"hostname": string,"queues": (string)[],"running_jobs": number,"started_at": string,"version": string | null,"worker_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "beat_at"?: string,"hostname": string,"queues"?: (string)[],"running_jobs"?: number,"started_at": string,"version"?: string | null,"worker_id": string
+                  }
+                  Update: {
+                    "beat_at"?: string,"hostname"?: string,"queues"?: (string)[],"running_jobs"?: number,"started_at"?: string,"version"?: string | null,"worker_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Views: {
@@ -281,6 +295,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: {
               "expires_at": string,"invite_id": string,"invited_by_name": string,"org_role": Database["public"]['Enums']["org_role"],"organization_name": string
             }[]
+                           },
+"ping_worker":
+{ Args: Record<PropertyKey, never>; Returns: string
                            }
           }
           Enums: {

@@ -61,5 +61,8 @@ interactive UI, also `npm run test:e2e` (Playwright on port 3210; needs `npm run
 Conventions for working in this repo are in [`CLAUDE.md`](./CLAUDE.md). Product scope:
 `../CORE_FEATURES.md`; build plan: `../PLAN.md`; progress: `../TASKS.md`; design: `../design/THEME.md`.
 
+The background worker is a separate repo, `../proc-robot-worker`; the database it works against
+(queues, `ai_jobs`, the `procrobot_worker` role) is defined here in `supabase/`.
+
 Hosting: Vercel (`iad1`). Production must set `NEXT_PUBLIC_SITE_URL="https://proc-robot.com"` at build
 time and `SITE_INDEXABLE="true"`.

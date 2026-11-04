@@ -7,6 +7,10 @@
 --   leo@kigen.test, ratna@kigen.test, budi@acme.test, admin@proc-robot.test
 --   password: proc-robot-local
 -- Magic-link emails land in Mailpit: http://127.0.0.1:54324
+--
+-- The worker (../proc-robot-worker) connects as procrobot_worker:
+--   postgresql://procrobot_worker:worker-local@127.0.0.1:54322/postgres
+alter role procrobot_worker with password 'worker-local';
 
 -- ---------------------------------------------------------------------------
 -- Users (the on_auth_user_created trigger creates their profiles)

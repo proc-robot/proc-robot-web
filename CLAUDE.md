@@ -160,7 +160,9 @@ npm run db:stop
   the seeded users in through real magic links read from Mailpit and saves their sessions
   (`MEMBER_STATE`, `ADMIN_STATE` in `e2e/support/auth.ts`); a spec opts in with
   `test.use({ storageState: MEMBER_STATE })`. Sign-up tests leave `e2e-*@example.test` users in the
-  local database; `npm run db:reset` clears them.
+  local database; `npm run db:reset` clears them. Playwright also starts the worker from the sibling
+  repo `../proc-robot-worker` (override with `WORKER_DIR`; keep `npm install` done there) for
+  `e2e/worker.spec.ts`, which is skipped when that repo is missing.
 
 Env: copy `.env.example` → `.env.local`.
 
@@ -279,6 +281,29 @@ the test's own orgs (the local seed data is present).
 **FX rates** refresh daily via `pg_cron` + `pg_net` (`private.request_fx_rates()` at 17:00 UTC,
 `private.store_fx_rates()` ten minutes later) from the ECB rates on the Frankfurter API; rates are
 stored as units per USD.
+
+## Background jobs and the worker
+
+- **The worker is a separate repo: `../proc-robot-worker`** (Node 22, Railway). Its `CLAUDE.md`
+  has the handler rules. This repo owns **the contract** it works against, in
+  `supabase/migrations/` (`*_jobs.sql`, `*_worker.sql`): the pgmq queues, `ai_jobs`,
+  `jobs_dead_letter`, `worker_heartbeats`, the `procrobot_worker` role and its policies.
+- **Starting a job:** an RPC checks the request (plan, credits) and calls
+  `private.enqueue_job(org_id, queue, payload, credits)` in the same transaction. It never runs in a
+  Server Action or a request.
+- **The worker role has no RLS bypass.** It works through policies `to procrobot_worker` that match
+  `organization_id = (select private.worker_org_id())`, which the worker sets per job. **A table the
+  worker needs** gets the narrowest grant, that policy, and a test in
+  `supabase/tests/database/08_worker.test.sql`.
+- **Showing progress:** `useJob(jobId)` (`src/hooks/use-job.ts`) follows an `ai_jobs` row with
+  Realtime *and* polls every 2 s until it finishes. Realtime alone misses updates: a job can finish
+  before the subscription is live. `isFinished(job)` tells when to stop.
+- `ai_jobs.error` is written for the organization's members; internal errors stay in
+  `jobs_dead_letter` (Super Admins only).
+- **Worker check (T0.6.8):** the dashboard's "System check" card calls `ping_worker()` and shows the
+  job live. It moves to the Super Admin's jobs monitor with the real dashboard (T1.1.7).
+- The database also runs `private.sweep_stale_jobs()` every minute (pg_cron): running jobs whose
+  heartbeat stopped go back to `queued`.
 
 ## Theme (`src/app/globals.css`, details in `../design/THEME.md`)
 

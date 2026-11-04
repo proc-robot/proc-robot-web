@@ -54,8 +54,8 @@ select results_eq(
 
 select results_eq(
   $$select jobname::text from cron.job order by jobname$$,
-  array['fx-rates-request', 'fx-rates-store'],
-  'the daily FX refresh is scheduled'
+  array['fx-rates-request', 'fx-rates-store', 'sweep-stale-jobs'],
+  'the FX refresh and the stale-job sweeper are scheduled'
 );
 
 select ok(
