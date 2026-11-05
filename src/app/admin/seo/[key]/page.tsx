@@ -27,11 +27,7 @@ export async function generateMetadata({
   return { title: isStaticPageSeoKey(key) ? `SEO · ${STATIC_PAGE_SEO_BY_KEY[key].label}` : "SEO" };
 }
 
-export default async function AdminSeoDetailPage({
-  params,
-}: {
-  params: Promise<{ key: string }>;
-}) {
+export default async function AdminSeoDetailPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
   if (!isStaticPageSeoKey(key)) notFound();
 

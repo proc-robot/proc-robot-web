@@ -1,0 +1,165 @@
+# CI for proc-robot-web (TASKS.md T0.7.1). Three jobs:
+# - checks:   typecheck, lint, format, unit tests, production build
+# - database: migrations from scratch, pgTAP (supabase test db), schema lint,
+#             and generated types that match the schema
+# - e2e:      Playwright against a production build on a local Supabase stack,
+#             with the worker from the sibling repo when REPOS_READ_TOKEN is set
+#             (SETUP_ACCOUNT.md §2): its branch with the same name if there is
+#             one, else its main. Without the token the worker check is skipped.
+# No hosted secrets are needed: everything runs on a local Supabase stack.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  # Same CLI as local development, so generated types match byte for byte.
+  SUPABASE_CLI_VERSION: "3.0.0"
+  # supabase/config.toml reads these with env(); CI never signs in with Google.
+  SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ci-unused
+  SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ci-unused
+  # Services the tests never use; skipping them saves image pulls.
+  SUPABASE_EXCLUDE: studio,edge-runtime,imgproxy,logflare,vector
+
+jobs:
+  checks:
+    name: Typecheck, lint, format, unit tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: Production build
+        run: npm run build
+        env:
+          # Inlined at build time; the build never calls Supabase.
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-build-placeholder
+
+  database:
+    name: Database (migrations, pgTAP, lint, types)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: supabase/setup-cli@v3
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      - name: Start Supabase (applies every migration and the seed)
+        run: supabase start -x "$SUPABASE_EXCLUDE"
+      - name: pgTAP tests
+        run: supabase test db
+      - name: Schema lint
+        run: supabase db lint --level warning --fail-on warning
+      - name: Generated types match the schema
+        run: |
+          supabase gen types typescript --local --schema public > src/lib/supabase/database.types.ts
+          git diff --exit-code -- src/lib/supabase/database.types.ts \
+            || { echo "::error::Run 'npm run db:types' and commit the result."; exit 1; }
+
+  e2e:
+    name: End-to-end (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      REPOS_READ_TOKEN: ${{ secrets.REPOS_READ_TOKEN }}
+      CI: "true"
+    defaults:
+      run:
+        working-directory: proc-robot-web
+    steps:
+      # Both repos side by side, as on a developer machine (../proc-robot-worker).
+      - uses: actions/checkout@v5
+        with:
+          path: proc-robot-web
+      # A change that spans both repos uses the same branch name in each, so CI
+      # tests the pair; otherwise the worker's main.
+      - name: Pick the worker branch
+        id: worker-ref
+        if: env.REPOS_READ_TOKEN != ''
+        working-directory: .
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+          REPO: ${{ github.repository_owner }}/proc-robot-worker
+        run: |
+          url="https://x-access-token:${REPOS_READ_TOKEN}@github.com/${REPO}.git"
+          if git ls-remote --exit-code --heads "$url" "refs/heads/$BRANCH" > /dev/null; then
+            ref="$BRANCH"
+          else
+            ref=main
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "::notice::Worker checked out from its '$ref' branch."
+      - name: Check out the worker
+        if: env.REPOS_READ_TOKEN != ''
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.repository_owner }}/proc-robot-worker
+          token: ${{ env.REPOS_READ_TOKEN }}
+          ref: ${{ steps.worker-ref.outputs.ref }}
+          path: proc-robot-worker
+      - name: No worker repo access
+        if: env.REPOS_READ_TOKEN == ''
+        run: echo "::notice::REPOS_READ_TOKEN is not set; e2e/worker.spec.ts will be skipped."
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: proc-robot-web/package-lock.json
+      - uses: supabase/setup-cli@v3
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - run: npm ci
+      # Without a package.json the worker spec skips itself (e2e/support/worker.ts).
+      - name: Install the worker
+        if: env.REPOS_READ_TOKEN != ''
+        working-directory: proc-robot-worker
+        env:
+          WORKER_REF: ${{ steps.worker-ref.outputs.ref }}
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "::warning::The worker's '$WORKER_REF' branch has no code yet; e2e/worker.spec.ts will be skipped."
+          fi
+      - name: Install Playwright's Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start Supabase
+        run: supabase start -x "$SUPABASE_EXCLUDE"
+      - name: App environment from the local stack
+        run: |
+          eval "$(supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY)=')"
+          {
+            echo "NEXT_PUBLIC_SITE_URL=https://proc-robot.com"
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
+          } > .env.local
+
+      - name: Playwright
+        run: npm run test:e2e
+      - name: Keep traces of failed tests
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-results
+          path: proc-robot-web/test-results
+          retention-days: 7

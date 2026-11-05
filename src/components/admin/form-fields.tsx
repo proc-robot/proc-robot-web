@@ -53,7 +53,15 @@ export function Field({
 }
 
 /** A value shown for context but not editable here (the server enforces it too). Not submitted. */
-export function ReadOnlyField({ label, value, hint }: { label: string; value: string; hint?: string }) {
+export function ReadOnlyField({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
   return (
     <div className="grid gap-1.5">
       <Label>{label}</Label>
@@ -84,7 +92,13 @@ export function TextareaField({
         {label}
         {required && <span className="text-destructive">*</span>}
       </Label>
-      <Textarea id={name} name={name} rows={rows} defaultValue={defaultValue ?? ""} required={required} />
+      <Textarea
+        id={name}
+        name={name}
+        rows={rows}
+        defaultValue={defaultValue ?? ""}
+        required={required}
+      />
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
@@ -140,7 +154,11 @@ export function CheckboxGroupField({
       ) : (
         <div className="grid max-h-64 gap-2 overflow-y-auto rounded-md border p-3 sm:grid-cols-2">
           {options.map((o) => (
-            <Label key={o.value} htmlFor={`${name}-${o.value}`} className="cursor-pointer font-normal">
+            <Label
+              key={o.value}
+              htmlFor={`${name}-${o.value}`}
+              className="cursor-pointer font-normal"
+            >
               <Checkbox
                 id={`${name}-${o.value}`}
                 name={name}
@@ -167,13 +185,24 @@ export function SaveButton({ children = "Save" }: { children?: ReactNode }) {
     <Button
       type="submit"
       disabled={pending}
-      className="bg-black text-white hover:bg-black/90 active:scale-95 transition-transform disabled:opacity-60 disabled:cursor-not-allowed"
+      className="bg-black text-white transition-transform hover:bg-black/90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? (
         <span className="flex items-center gap-2">
           <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
           </svg>
           Saving…
         </span>

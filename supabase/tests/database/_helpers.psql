@@ -1,0 +1,99 @@
+-- Shared test helpers. Each test file includes this inside its own
+-- transaction (`\ir _helpers.psql` after `begin;`), so the helpers are rolled
+-- back with the test and never stay in the database.
+--
+-- Setup helpers are SECURITY DEFINER so a test can call them while signed in
+-- as a user. authenticate_as / clear_authentication are not: they switch
+-- roles, which Postgres forbids inside SECURITY DEFINER functions.
+
+create extension if not exists pgtap with schema extensions;
+
+create schema if not exists tests;
+grant usage on schema tests to authenticated;
+
+-- An auth user with a confirmed email; the sign-up trigger creates the profile.
+create or replace function tests.create_user(p_email text, p_confirmed boolean default true)
+returns uuid
+language sql
+security definer
+as $$
+  insert into auth.users (id, aud, role, email, email_confirmed_at, raw_user_meta_data)
+  values (gen_random_uuid(), 'authenticated', 'authenticated', p_email,
+          case when p_confirmed then now() end,
+          jsonb_build_object('full_name', initcap(split_part(p_email, '@', 1))))
+  returning id
+$$;
+
+-- An organization owned by p_owner (set up directly, not through the RPC).
+create or replace function tests.create_org(
+  p_owner uuid, p_name text, p_plan text default 'starter',
+  p_country text default 'SG', p_currency text default 'SGD'
+)
+returns uuid
+language plpgsql
+security definer
+as $$
+declare
+  v_id uuid;
+begin
+  insert into public.organizations (name, slug, country, default_currency, plan_id)
+  values (p_name,
+          btrim(lower(regexp_replace(p_name, '[^a-zA-Z0-9]+', '-', 'g')), '-')
+            || '-' || substr(md5(random()::text), 1, 6),
+          p_country, p_currency, p_plan)
+  returning id into v_id;
+  update public.profiles set organization_id = v_id, org_role = 'owner' where id = p_owner;
+  return v_id;
+end;
+$$;
+
+create or replace function tests.add_member(p_org uuid, p_user uuid, p_role public.org_role default 'member')
+returns void
+language sql
+security definer
+as $$
+  update public.profiles set organization_id = p_org, org_role = p_role where id = p_user
+$$;
+
+-- The JWT claims Supabase Auth would issue for this user: built by the real
+-- custom_access_token_hook.
+create or replace function tests.claims_for(p_user uuid)
+returns jsonb
+language sql
+security definer
+as $$
+  select public.custom_access_token_hook(jsonb_build_object(
+    'user_id', p_user,
+    'claims', jsonb_build_object(
+      'sub', p_user, 'role', 'authenticated', 'aud', 'authenticated',
+      'email', (select email from auth.users where id = p_user))
+  )) -> 'claims'
+$$;
+
+-- Continue as this signed-in user (role `authenticated` + their claims) until
+-- the next authenticate_as / clear_authentication or the end of the test.
+create or replace function tests.authenticate_as(p_user uuid)
+returns void
+language plpgsql
+as $$
+declare
+  v_claims jsonb;
+begin
+  perform set_config('role', 'postgres', true);
+  v_claims := tests.claims_for(p_user);
+  perform set_config('request.jwt.claims', v_claims::text, true);
+  perform set_config('role', 'authenticated', true);
+end;
+$$;
+
+create or replace function tests.clear_authentication()
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('role', 'postgres', true);
+  perform set_config('request.jwt.claims', '', true);
+end;
+$$;
+
+grant execute on all functions in schema tests to authenticated;

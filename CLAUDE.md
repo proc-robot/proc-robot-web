@@ -36,11 +36,8 @@ One Next.js app, three sections. They never share chrome.
 - **Domains (planned, Phase 0):** `proc-robot.com` serves the public section; `app.proc-robot.com`
   serves the workspace and `/admin`, via host routing in `src/proxy.ts`. That is why workspace
   paths carry no prefix (`/projects`, not `/app/projects`).
-- **⚠️ There is no auth guard yet.** The Supabase session check and the `app_role` check arrive with
-  TASKS.md T0.3.3 / T0.3.5 / T0.3.7. **Do not deploy the workspace or `/admin` anywhere public before
-  then.** When it lands: a Next 16 `src/proxy.ts` (it must live in `src/`, next to `app/` — at the repo
-  root Next silently ignores it) for the redirect, **plus** a check at the top of every page and
-  every Server Action. The proxy is only the first line; Server Actions are separate entry points.
+- **Sign-in and onboarding** live in `src/app/(auth)/` (`/sign-in`, `/onboarding`): brand look, no
+  sidebar, `noindex`. See "Auth" below for the guard.
 
 ### Sidebars (`(app)` and `/admin`)
 
@@ -58,16 +55,21 @@ One Next.js app, three sections. They never share chrome.
   `/admin` is not highlighted on every `/admin/*` page.
 - The nav config holds icon components, which cannot be passed from a Server Component as props —
   that is why `AppShell`/`AdminShell` are Client Components that import their own config.
-- The sidebar footer shows a "Not signed in" placeholder; the user/org menu goes there with auth.
+- The sidebar footer holds the number & date format picker (`FormatSwitcher`, both sections) and a
+  "Not signed in" placeholder; the user/org menu replaces the placeholder with auth (T0.1.8).
+- A unit test (`navigation/nav.test.ts`) fails if a live nav entry has no `page.tsx`, a later-phase
+  entry has one, or an href repeats.
 
 ## Stack
 
 **In the repo now:** Next.js 16 App Router, React 19, TypeScript, Tailwind v4 (CSS-first `@theme`,
 no `tailwind.config`), React Compiler (`reactCompiler: true`), shadcn/ui (`new-york`, zinc base,
-`radix-ui`), lucide icons, `nextjs-toploader`.
+`radix-ui`), lucide icons, `nextjs-toploader`, TanStack Query, Zod 4, React Hook Form, sonner
+(toasts). Tooling: ESLint, Prettier, Vitest, Playwright. **No translation library: the UI is
+English only.**
 
-**Planned (TASKS.md Phase 0 — not installed yet):** `@supabase/ssr` + `supabase-js`, `next-intl`
-(en → id), TanStack Query, Zod, React Hook Form. Hosting: Vercel `iad1`.
+**Database:** Supabase (Postgres 17) in `supabase/`: migrations, local seed, pgTAP tests — see
+"Database" below. The app talks to it with `@supabase/ssr` + `supabase-js`. Hosting: Vercel `iad1`.
 
 Backend rules that shape every frontend change (see `../PLAN.md` → Recommended Tech Stack):
 
@@ -79,8 +81,8 @@ Backend rules that shape every frontend change (see `../PLAN.md` → Recommended
   a selling price, margin, tax or total in TypeScript, on the client or the server.
 - **Server Actions stay thin**: validate input, call `supabase-js`/an RPC with the user's session,
   `revalidatePath`/`redirect`. No business logic in them.
-- **No Route Handlers for business logic.** The only one is `/auth/callback` (OAuth). Stripe lives
-  in Supabase Edge Functions, not here.
+- **No Route Handlers for business logic.** The only two finish a sign-in: `/auth/callback`
+  (Google) and `/auth/confirm` (magic links). Stripe lives in Supabase Edge Functions, not here.
 - **The service-role/secret key never appears in this app.** Only `NEXT_PUBLIC_SUPABASE_URL` and the
   publishable key.
 - **Long work is never done in a request.** Extraction, price discovery, rendering and email go
@@ -105,7 +107,9 @@ UI Strategy:
   CLI has written `import { cn } from "cn"` instead of `@/lib/utils` before.
 
 Icons:
-- **`lucide-react` only** (it is the shadcn `iconLibrary` in `components.json`). No Phosphor.
+- **`lucide-react` only** (it is the shadcn `iconLibrary` in `components.json`). No Phosphor. The one
+  exception is `components/auth/GoogleIcon.tsx`: Google's branding rules require its "G" on the
+  sign-in button, and lucide has no brand logos.
 
 Documentation:
 - Always query Context7 before using third-party libraries.
@@ -117,20 +121,48 @@ Code Style:
 - Client Components only when required
 
 Workflow:
-- After making changes, verify with `npm run build` and `npm run lint` — these are sufficient for correctness checking.
+- After making changes, run `npm run check` (typecheck + lint + format check + unit tests) and
+  `npm run build`. For changes to routing, metadata, layouts or anything interactive, also run
+  `npm run test:e2e`.
 
 ## Commands
 
 ```bash
 npm install
+npx playwright install chromium   # once per machine, for test:e2e
 npm run dev            # http://localhost:3000
 npm run build          # also runs the TS typecheck
+npm run check          # typecheck + lint + format:check + test (what CI runs)
+npm run typecheck      # tsc --noEmit
 npm run lint
+npm run format         # Prettier (+ Tailwind class sorting); format:check to verify only
+npm run test           # Vitest unit tests (src/**/*.test.ts); test:watch while working
+npm run test:e2e       # Playwright (e2e/) against a production build on port 3210
 npm run icons          # favicon / app icons / manifest icons / og-default.png from the logo
+
+# Database (Docker + Supabase CLI)
+npm run db:start       # local Supabase; add `-x studio,edge-runtime` to skip the big images
+npm run db:reset       # re-apply every migration + supabase/seed.sql
+npm run db:test        # pgTAP tests in supabase/tests/database
+npm run db:lint        # plpgsql_check over public + private
+npm run db:types       # regenerate src/lib/supabase/database.types.ts after a schema change
+npm run db:stop
 ```
 
-No automated tests yet (Vitest/Playwright are TASKS.md T0.1.7) — verify by building and by
-exercising the pages under `npm run dev`.
+- **Prettier** skips `src/components/ui/` (shadcn files stay exactly as the CLI writes them) and
+  Markdown. Node 22 (`@types/node` 22).
+- **Unit tests** run in Node and cover pure code: SEO metadata, JSON-LD, the page registry,
+  formatting, form helpers and nav ↔ page consistency. Put a test next to the
+  file it tests (`foo.ts` → `foo.test.ts`). Component tests would add `jsdom` + Testing Library.
+- **E2E tests** (`e2e/`) build and start the app on port **3210** (`E2E_PORT` to change it).
+  Locally, Playwright reuses whatever already listens on that port without checking what it is, so
+  keep it free. They need the local Supabase stack (`npm run db:start`): `e2e/auth.setup.ts` signs
+  the seeded users in through real magic links read from Mailpit and saves their sessions
+  (`MEMBER_STATE`, `ADMIN_STATE` in `e2e/support/auth.ts`); a spec opts in with
+  `test.use({ storageState: MEMBER_STATE })`. Sign-up tests leave `e2e-*@example.test` users in the
+  local database; `npm run db:reset` clears them. Playwright also starts the worker from the sibling
+  repo `../proc-robot-worker` (override with `WORKER_DIR`; keep `npm install` done there) for
+  `e2e/worker.spec.ts`, which is skipped when that repo is missing.
 
 Env: copy `.env.example` → `.env.local`.
 
@@ -142,6 +174,150 @@ Env: copy `.env.example` → `.env.local`.
   request; anything else serves a blanket `Disallow: /`. Indexing is opt-in so Vercel preview and
   staging deployments stay out of search results. After a production deploy, confirm with
   `curl -s https://proc-robot.com/robots.txt`.
+
+## Git
+
+- **Branches:** `phase-<n>/<title>`, lower-case with hyphens — one branch per batch of TASKS.md work,
+  e.g. `phase-0/frontend-scaffold`, `phase-0/supabase-init`. `main` holds merged work.
+- **Commit subjects start with the TASKS.md ids they complete:** one id, a range or a list —
+  `T0.2.2–T0.5.3: Supabase local database`, `T0.3.4, T0.3.5: Auth hook`. Commits that complete no
+  task have no prefix.
+- What is done (and when) is recorded by the ticks and dates in `../TASKS.md`, not in branch names.
+- **CI** (`.github/workflows/ci.yml`) runs on every pull request and on `main`:
+  - `checks` runs `npm run check` and the production build;
+  - `database` starts Supabase from scratch, then runs `supabase test db`, `supabase db lint
+    --fail-on warning`, and fails if `database.types.ts` is out of date (**run `npm run db:types`
+    after every migration**);
+  - `e2e` runs Playwright on a local stack, with the worker repo when the `REPOS_READ_TOKEN`
+    secret exists (`../SETUP_ACCOUNT.md` §2). It checks out the worker's branch with **the same
+    name** if there is one, otherwise the worker's `main`.
+
+  **A change that spans both repos** (e.g. a new queue here and its handler in the worker) uses the
+  same branch name in both repos, so each repo's CI tests the pair.
+
+  The Supabase CLI version is pinned in the workflow (`SUPABASE_CLI_VERSION`); keep it equal to the
+  local one, or the generated types will differ.
+
+## Auth (`src/proxy.ts`, `src/lib/auth/`, `src/lib/supabase/`)
+
+- **Sign-in:** Google (A1) or an emailed magic link (A2), both on `/sign-in`. The first sign-in
+  creates the account; a user without an organization is sent to `/onboarding` (join an invite or
+  create one, and answer "What do you mainly create?"). Google needs the OAuth client from
+  TASKS.md T0.3.1 — until then, use the email link (locally the email lands in Mailpit,
+  `http://127.0.0.1:54324`).
+- **Three layers, never just one:**
+  1. `src/proxy.ts` (Next 16's middleware; it must live in `src/`): refreshes the session and
+     redirects — workspace needs an org, `/admin` needs a Super Admin, `/sign-in` and
+     `/onboarding` are skipped when there is nothing to do. Marketing pages skip it entirely and
+     stay static. **A new workspace section must be added to `WORKSPACE_PREFIXES`** in
+     `src/lib/auth/routes.ts` (a unit test fails otherwise).
+  2. The section layouts call `requireMember()` / `requireSuperAdmin()`, and **every Server Action
+     starts with `requireUser()` / `requireMember()`** (`src/lib/auth/session.ts`): an action is its
+     own entry point and never relies on the proxy.
+  3. RLS on every query.
+- **Supabase clients:** `@/lib/supabase/server` (Server Components, Actions, Route Handlers — acts as
+  the user), `@/lib/supabase/client` (Client Components: Realtime, uploads). Both are typed with
+  `database.types.ts`. Never the secret key.
+- **Claims** (`getClaims()` in `session.ts`, typed in `claims.ts`) carry `org_id`, `org_role`,
+  `app_role`, `plan`. They only change when the session refreshes, so any action that changes them
+  (creating or joining an org) calls `supabase.auth.refreshSession()` before redirecting.
+- **Redirect targets** from the URL (`?next=`) always pass through `safeNextPath()`.
+- **RPC errors** become messages with `rpcErrorMessage()` (`src/lib/forms/rpc-errors.ts`).
+- Signing in copies the profile's `format_locale` into the format cookie, and changing the format
+  saves it to the profile.
+
+## Database (`supabase/`)
+
+Local URLs: API `http://127.0.0.1:54321`, Postgres `127.0.0.1:54322` (`postgres`/`postgres`), Mailpit
+(auth emails) `http://127.0.0.1:54324`. `supabase/seed.sql` creates the reference scenario (Kigen with
+Leo + Ratna, Acme, a Super Admin); the local sign-in details are in that file.
+
+**Migrations** live in `supabase/migrations/` (one file per area: foundation, platform reference,
+tenancy, projects, jobs, storage). Until the first hosted `supabase db push`, they can still be
+edited; after that, every change is a new migration. Data every environment needs (plans, settings,
+units, categories) goes in a migration; local demo data goes in `seed.sql`.
+
+**Rules for every migration** (the tests in `supabase/tests/database/01_schema.test.sql` enforce the
+first three):
+- Every table in `public` has **RLS enabled and explicit grants**: `revoke all … from anon,
+  authenticated`, then grant exactly what is needed. **`anon` gets nothing** — the public site never
+  queries the database.
+- Internal helpers go in the **`private`** schema (not exposed by the API). Postgres lets `PUBLIC`
+  execute new functions, so **every migration that creates functions in `private` ends with
+  `revoke execute on all functions in schema private from public;`**. Grant `execute` to
+  `authenticated` only for helpers that RLS policies call.
+- Public RPCs: `revoke execute … from public, anon; grant execute … to authenticated`.
+- Every function sets `search_path = ''` and schema-qualifies names.
+- **Tenant tables** follow `projects` / `customers`: `organization_id uuid not null default
+  public.auth_org_id()` (clients never send it, and it has no update grant); one policy per operation
+  on `organization_id = (select public.auth_org_id())` (always wrap the helpers in `select`);
+  Super Admin access through `(select public.is_super_admin())`; links to other tenant rows through a
+  **composite foreign key that includes `organization_id`**; the `private.audit_super_admin_write`
+  trigger; and isolation tests in `03_tenant_isolation.test.sql`.
+- **Membership, roles, plan and org status never change through table updates.** Only RPCs do
+  (`create_organization`, `accept_invite`, `invite_member`, …), and they read the tables, not the
+  JWT. Column-level grants keep these columns read-only to users.
+- **Plan limits are enforced in the database**, in triggers or RPCs (an advisory lock per org stops
+  races), so no path bypasses them. They raise `plan_limit_reached` with the limit's name in
+  `detail` (`active_projects`, `seats`). Other RPC errors raise a short code as the message:
+  `not_allowed`, `already_in_organization`, `invite_not_found`, `already_member`, `invalid_role`,
+  `invalid_email`, `no_organization`. The UI maps codes to messages.
+- **Background work**: inside the RPC, call `private.enqueue_job(org_id, queue, payload, credits)`,
+  which writes `ai_jobs` and sends the pgmq message in the same transaction.
+- **Audit**: `private.audit(action, org_id, target_type, target_id, metadata)` for sensitive
+  actions; `audit_logs` is append-only (even for `postgres`).
+
+**Auth claims.** The custom access token hook (`public.custom_access_token_hook`, enabled in
+`config.toml` and in each hosted project's Auth → Hooks) adds `org_id`, `org_role`, `app_role`,
+`plan` and `org_status` to the JWT; the RLS helpers `auth_org_id()`, `auth_org_role()`,
+`auth_is_org_admin()` and `is_super_admin()` read them. A suspended org gets no `org_id`. Claims
+only change when the session refreshes, so **after `create_organization`, `accept_invite` or a
+plan change the client calls `supabase.auth.refreshSession()`**.
+
+**Invites** are accepted by the invited, verified email address (Google or magic link proves it):
+`my_pending_invites()` lists them on the onboarding screen and `accept_invite(id)` joins. No secret
+token is stored. Pending invites hold a seat until accepted, revoked or expired (7 days).
+
+**Open projects** (`active` + `submitted`) count against the plan's `active_projects` limit;
+`won`, `lost` and `archived` don't.
+
+**Storage**: object paths start with the org id (`{org_id}/…`). Members write `spec-files` and
+`supplier-files`; Owner/Admin write `templates` and `item-images`; only the worker writes
+`generated-docs`. Size and MIME limits are set on the buckets.
+
+**Tests** (`npm run db:test`): one file per area in `supabase/tests/database/`. Each starts with
+`begin; \ir _helpers.psql` and ends with `rollback;`. The helpers create users and orgs and sign in
+through the real token hook: `tests.create_user(email)`, `tests.create_org(owner, name, plan)`,
+`tests.add_member(org, user, role)`, `tests.authenticate_as(user)`, `tests.clear_authentication()`.
+Pair every denied write with a check that the target row is intact, and filter Super Admin counts to
+the test's own orgs (the local seed data is present).
+
+**FX rates** refresh daily via `pg_cron` + `pg_net` (`private.request_fx_rates()` at 17:00 UTC,
+`private.store_fx_rates()` ten minutes later) from the ECB rates on the Frankfurter API; rates are
+stored as units per USD.
+
+## Background jobs and the worker
+
+- **The worker is a separate repo: `../proc-robot-worker`** (Node 22, Railway). Its `CLAUDE.md`
+  has the handler rules. This repo owns **the contract** it works against, in
+  `supabase/migrations/` (`*_jobs.sql`, `*_worker.sql`): the pgmq queues, `ai_jobs`,
+  `jobs_dead_letter`, `worker_heartbeats`, the `procrobot_worker` role and its policies.
+- **Starting a job:** an RPC checks the request (plan, credits) and calls
+  `private.enqueue_job(org_id, queue, payload, credits)` in the same transaction. It never runs in a
+  Server Action or a request.
+- **The worker role has no RLS bypass.** It works through policies `to procrobot_worker` that match
+  `organization_id = (select private.worker_org_id())`, which the worker sets per job. **A table the
+  worker needs** gets the narrowest grant, that policy, and a test in
+  `supabase/tests/database/08_worker.test.sql`.
+- **Showing progress:** `useJob(jobId)` (`src/hooks/use-job.ts`) follows an `ai_jobs` row with
+  Realtime *and* polls every 2 s until it finishes. Realtime alone misses updates: a job can finish
+  before the subscription is live. `isFinished(job)` tells when to stop.
+- `ai_jobs.error` is written for the organization's members; internal errors stay in
+  `jobs_dead_letter` (Super Admins only).
+- **Worker check (T0.6.8):** the dashboard's "System check" card calls `ping_worker()` and shows the
+  job live. It moves to the Super Admin's jobs monitor with the real dashboard (T1.1.7).
+- The database also runs `private.sweep_stale_jobs()` every minute (pg_cron): running jobs whose
+  heartbeat stopped go back to `queued`.
 
 ## Theme (`src/app/globals.css`, details in `../design/THEME.md`)
 
@@ -303,12 +479,74 @@ Navigation loading is a single global `<NextTopLoader>` (accent green `#0F6B57`)
 `src/app/layout.tsx`. **There are no per-route `loading.tsx` files** — don't add them. Job progress
 (extraction, discovery, rendering) is shown from Realtime on `ai_jobs`, not with route loading UI.
 
+## Formatting: money and dates (`src/lib/format.ts`)
+
+- **The UI is English only — no translations, no message files, no locale in the URL.** What
+  varies per user is the **format** of numbers and dates:
+
+  | Format | Money | Date | Date + time |
+  |---|---|---|---|
+  | `en-US` (default) | USD 1,234.50 · IDR 1,500,000 | Nov 4, 2026 | Nov 4, 2026, 14:05 UTC |
+  | `en-ID` | USD 1.234,50 · IDR 1.500.000 | 4 Nov 2026 | 4 Nov 2026, 14.05 WIB |
+
+  `en-ID` keeps English month names (`id-ID` would print "Agu", "Okt", "Des"). To offer another
+  format, add it to `FORMAT_LOCALES` / `FORMAT_LOCALE_NAMES` and to the tests.
+- **Get a formatter, then call `money` / `date` / `calendarDate` / `dateTime`:**
+  - Server Components and Server Actions: `const format = await getFormatter()`
+    (`src/lib/format-server.ts`).
+  - Client Components: `const format = useFormatter()` (`components/providers/FormatProvider.tsx`).
+  - No signed-in user (public site, emails): `createFormatter()` with the defaults.
+- **Never** `toLocaleString()`, `Intl.*` inline, or hand-built strings for money and dates.
+- **Money:** `format.money(amount, currency)` shows the ISO code, not a symbol ("$" is both USD and
+  SGD). IDR has no decimals. Display only — every money figure comes from `calculate_quotation()`.
+- **Dates:** `format.date(timestamptz)` converts into the user's time zone; `format.calendarDate(
+  "2026-11-04")` is for `date` columns (validity, deadlines) and never shifts. Times are 24-hour
+  with the zone shown.
+- **The preference** lives in the `format_locale` cookie, set by `setFormatLocale()`
+  (`src/lib/format-actions.ts`) from the sidebar picker. The `(app)` and `admin` layouts read it with
+  `getFormatPrefs()` and pass it to `AppProviders`, so server and client format the same way. With
+  auth: sign-in copies `profiles.format_locale` into the cookie, the profile page edits both, and the
+  time zone comes from `profiles.timezone` (UTC until then, T1.1.1).
+- Reading the cookie renders a route per request. That is fine for the workspace and `/admin`;
+  **never call `getFormatPrefs()` / `getFormatter()` on the public site**, which stays static.
+
+## Forms, Server Actions, data fetching, toasts
+
+- **Forms:** React Hook Form + `zodResolver` + the shadcn **`Field`** components (`FieldGroup`,
+  `Field`, `FieldLabel`, `FieldDescription`, `FieldError`) through RHF's `Controller`; put
+  `data-invalid` on `Field` and `aria-invalid` on the control. The schema lives next to the action
+  and is shared by the form (instant feedback) and the action (the real check).
+- **Server Actions return `ActionResult<T>`** (`src/lib/forms/action-result.ts`) instead of
+  throwing: `actionOk(data)`, `actionError(message)`, or `invalidInput(zodError, message)` after a
+  failed `safeParse`. Always re-validate on the server; a Server Action is a public endpoint.
+- **On the client**, `applyActionErrors(form, result)` puts each field error under its field (RHF
+  dot paths, e.g. `items.0.quantity`) and toasts the message.
+
+```tsx
+// action (server):  const parsed = schema.safeParse(input);
+//                   if (!parsed.success) return invalidInput(parsed.error);
+//                   const { data, error } = await supabase.rpc("create_project", parsed.data);
+//                   return error ? actionError("Could not create the project.") : actionOk({ id: data });
+// form (client):    const result = await createProject(values);
+//                   if (!result.ok) return applyActionErrors(form, result);
+```
+
+- **Data fetching:** pages read in Server Components (supabase-js with the user's session); writes go
+  through Server Actions. **TanStack Query** (`AppProviders`) is for data the browser keeps fresh by
+  itself — job progress next to Realtime, polling, search-as-you-type. Don't wrap ordinary page
+  loads in `useQuery`.
+- **Toasts:** `toast.success()` / `toast.error()` from `sonner`. The `<Toaster>` lives in
+  `AppProviders` (workspace + admin), not on the public site.
+- The old Swillfam `form-fields` (uncontrolled inputs + `useFormStatus`) suit simple admin forms that
+  post `FormData`; use the RHF pattern for everything else.
+
 ## Admin building blocks (`src/components/admin/`)
 
 Kept from Swillfam, Prisma-free, zinc-styled — use these instead of re-implementing:
 `AdminTable` (`columns`/`getKey`/`empty`), `PageHeader` / `EditHeader` / `Card`, `SearchInput`,
 `Pagination`, `form-fields` (`Field`, `TextareaField`, `CheckboxField`, `SelectField`, `SaveButton`,
-…), `MultiSelectField`, `ConfirmDeleteButton`, `Toast`, `SeoDetailsPanel`, `JsonLdPreview`.
+…), `MultiSelectField`, `ConfirmDeleteButton`, `SeoDetailsPanel`, `JsonLdPreview`. Toasts come from
+`sonner` (see above).
 
 **Every admin list page includes:**
 1. **Search** — `SearchInput` above the `Card`. It filters on typing (debounced 300ms, min 3 chars)

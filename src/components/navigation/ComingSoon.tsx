@@ -12,7 +12,9 @@ export function ComingSoon({ item, brand = false }: { item: NavItem; brand?: boo
       <div className="space-y-2">
         <h1
           className={cn(
-            brand ? "font-newsreader text-[32px] font-normal leading-tight" : "text-xl font-semibold",
+            brand
+              ? "font-newsreader text-[32px] leading-tight font-normal"
+              : "text-xl font-semibold",
           )}
         >
           {item.label}
@@ -21,7 +23,7 @@ export function ComingSoon({ item, brand = false }: { item: NavItem; brand?: boo
       </div>
 
       <div className="rounded-[14px] border border-dashed bg-card p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+        <p className="text-xs font-semibold tracking-[0.1em] text-muted-foreground uppercase">
           Not built yet
         </p>
         {item.tasks.length > 0 && (

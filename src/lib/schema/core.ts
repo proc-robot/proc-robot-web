@@ -20,13 +20,7 @@ import { plainText } from "@/lib/seo/text";
 
 /** JSON-LD is plain JSON — this is the shape of anything the builders produce. */
 export type JsonLdValue =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | JsonLdValue[]
-  | { [key: string]: JsonLdValue };
+  string | number | boolean | null | undefined | JsonLdValue[] | { [key: string]: JsonLdValue };
 
 export type JsonLdNode = { [key: string]: JsonLdValue };
 

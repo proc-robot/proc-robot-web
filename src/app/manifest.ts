@@ -16,8 +16,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Proc-Robot",
     short_name: "Proc-Robot",
-    description:
-      "AI-powered procurement and quotation platform — from specification to quotation.",
+    description: "AI-powered procurement and quotation platform — from specification to quotation.",
     start_url: "/",
     display: "browser",
     background_color: "#F7F5F0",

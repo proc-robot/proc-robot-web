@@ -13,10 +13,13 @@ export function PageHeader({
   newLabel?: string;
 }) {
   return (
-    <div className="flex items-center justify-between mb-6">
+    <div className="mb-6 flex items-center justify-between">
       <h1 className="text-xl font-semibold text-foreground">{title}</h1>
       {newHref && (
-        <Button asChild className="bg-black text-white hover:bg-black/90 active:scale-95 transition-transform">
+        <Button
+          asChild
+          className="bg-black text-white transition-transform hover:bg-black/90 active:scale-95"
+        >
           <Link href={newHref}>{newLabel}</Link>
         </Button>
       )}
@@ -27,7 +30,7 @@ export function PageHeader({
 /** Detail/edit-page header: title + "Back" link. */
 export function EditHeader({ title, backHref }: { title: string; backHref: string }) {
   return (
-    <div className="flex items-center justify-between mb-6">
+    <div className="mb-6 flex items-center justify-between">
       <h1 className="text-xl font-semibold text-foreground">{title}</h1>
       <Button asChild variant="ghost" size="sm">
         <Link href={backHref}>← Back</Link>

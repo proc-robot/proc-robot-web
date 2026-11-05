@@ -12,9 +12,7 @@
  * This is the **marketing** origin (`proc-robot.com`). The signed-in app on
  * `app.proc-robot.com` is never indexed, so nothing builds canonicals for it.
  */
-const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://proc-robot.com"
-).replace(/\/+$/, "");
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://proc-robot.com").replace(/\/+$/, "");
 
 /** The bare origin, no trailing slash. */
 export function siteUrl(): string {

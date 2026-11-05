@@ -22,15 +22,19 @@ function PaginationInner({ page, totalPages }: { page: number; totalPages: numbe
   const pages = generatePages(page, totalPages);
 
   return (
-    <div className="flex items-center justify-between pt-4 border-t mt-4">
-      <p className="text-sm text-muted-foreground">Page {page} of {totalPages}</p>
+    <div className="mt-4 flex items-center justify-between border-t pt-4">
+      <p className="text-sm text-muted-foreground">
+        Page {page} of {totalPages}
+      </p>
       <div className="flex items-center gap-1">
         <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => goTo(page - 1)}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         {pages.map((p, i) =>
           p === "..." ? (
-            <span key={`e${i}`} className="px-1 text-muted-foreground">…</span>
+            <span key={`e${i}`} className="px-1 text-muted-foreground">
+              …
+            </span>
           ) : (
             <Button
               key={p}
@@ -41,9 +45,14 @@ function PaginationInner({ page, totalPages }: { page: number; totalPages: numbe
             >
               {p}
             </Button>
-          )
+          ),
         )}
-        <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => goTo(page + 1)}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page >= totalPages}
+          onClick={() => goTo(page + 1)}
+        >
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>

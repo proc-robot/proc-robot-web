@@ -10,7 +10,8 @@ import { SiteHeader } from "@/components/public/SiteHeader";
  */
 export const metadata: Metadata = {
   title: "Page not found | Proc-Robot",
-  robots: { index: false, follow: true },
+  // No `robots` here: Next adds <meta name="robots" content="noindex"> to
+  // every 404 response itself, and a second tag would only duplicate it.
 };
 
 export default function NotFound() {

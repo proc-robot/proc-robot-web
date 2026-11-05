@@ -45,7 +45,9 @@ export function MultiSelectField({
   const labelFor = (value: string) => options.find((o) => o.value === value)?.label ?? value;
 
   const toggle = (value: string) => {
-    setSelected((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
+    setSelected((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
+    );
   };
 
   const remove = (value: string) => {
