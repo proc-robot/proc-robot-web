@@ -441,10 +441,12 @@ enabled = true
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
 
-# Google sign-in (A1). The client comes from Google Cloud (TASKS.md T0.3.1);
-# put its id and secret in supabase/.env (see supabase/.env.example).
+# Google sign-in (A1): built, but off until Phase 4 (TASKS_SECONDARY.md T4.2); magic link
+# is the only sign-in for now. To turn it on: set `enabled = true`, put the
+# Google client's id and secret in supabase/.env (see supabase/.env.example),
+# set GOOGLE_SIGN_IN="true" in .env.local, then restart the local stack.
 [auth.external.google]
-enabled = true
+enabled = false
 client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
 skip_nonce_check = false

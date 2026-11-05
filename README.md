@@ -20,17 +20,20 @@ npm run db:test    # database tests (RLS, plan limits, onboarding, storage, jobs
 |---|---|
 | `/` | Public site (indexable; SEO metadata, sitemap, JSON-LD) |
 | `/dashboard`, `/projects`, … | Workspace (navy sidebar) |
-| `/sign-in`, `/onboarding` | Sign-in (Google or email link) and organization setup |
+| `/sign-in`, `/onboarding` | Sign-in (email link; Google from Phase 4) and organization setup |
 | `/admin` | Super Admin console (zinc sidebar), incl. `/admin/seo` |
 
 Sign in locally with any seeded user from `supabase/seed.sql` through the email link (it arrives in
 Mailpit at http://127.0.0.1:54324), or sign up with any address.
 
-### Accounts (Google sign-in, Supabase, Vercel, …)
+### Accounts (Supabase, Vercel, Railway, …)
 
-Creating and configuring every external account — including the Google OAuth client for sign-in
-(T0.3.1) and the hosted Supabase settings (templates, token hook, redirect URLs) — is described in
-`../SETUP_ACCOUNT.md`.
+Creating and configuring every external account — including the hosted Supabase settings
+(templates, token hook, redirect URLs) and, from Phase 4, the Google OAuth client — is described in
+`../SETUP_ACCOUNT.md`. There is one hosted environment, `prod`: a merge to `main` goes live.
+
+Google sign-in is built but off: it shows only with `GOOGLE_SIGN_IN="true"` and the provider
+enabled in `supabase/config.toml` (see `CLAUDE.md` → Auth).
 
 ### Checks
 

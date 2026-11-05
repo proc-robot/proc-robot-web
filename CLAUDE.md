@@ -81,8 +81,9 @@ Backend rules that shape every frontend change (see `../PLAN.md` → Recommended
   a selling price, margin, tax or total in TypeScript, on the client or the server.
 - **Server Actions stay thin**: validate input, call `supabase-js`/an RPC with the user's session,
   `revalidatePath`/`redirect`. No business logic in them.
-- **No Route Handlers for business logic.** The only two finish a sign-in: `/auth/callback`
-  (Google) and `/auth/confirm` (magic links). Stripe lives in Supabase Edge Functions, not here.
+- **No Route Handlers for business logic.** The only two finish a sign-in: `/auth/confirm`
+  (magic links) and `/auth/callback` (Google; kept for when Google sign-in is turned on in Phase 4).
+  Stripe lives in Supabase Edge Functions, not here.
 - **The service-role/secret key never appears in this app.** Only `NEXT_PUBLIC_SUPABASE_URL` and the
   publishable key.
 - **Long work is never done in a request.** Extraction, price discovery, rendering and email go
@@ -180,7 +181,7 @@ Env: copy `.env.example` → `.env.local`.
 - **Branches:** `phase-<n>/<title>`, lower-case with hyphens — one branch per batch of TASKS.md work,
   e.g. `phase-0/frontend-scaffold`, `phase-0/supabase-init`. `main` holds merged work.
 - **Commit subjects start with the TASKS.md ids they complete:** one id, a range or a list —
-  `T0.2.2–T0.5.3: Supabase local database`, `T0.3.4, T0.3.5: Auth hook`. Commits that complete no
+  `T0.2.2–T0.5.3: Supabase local database`, `T0.3.3, T0.3.4: Auth hook`. Commits that complete no
   task have no prefix.
 - What is done (and when) is recorded by the ticks and dates in `../TASKS.md`, not in branch names.
 - **CI** (`.github/workflows/ci.yml`) runs on every pull request and on `main`:
@@ -200,11 +201,16 @@ Env: copy `.env.example` → `.env.local`.
 
 ## Auth (`src/proxy.ts`, `src/lib/auth/`, `src/lib/supabase/`)
 
-- **Sign-in:** Google (A1) or an emailed magic link (A2), both on `/sign-in`. The first sign-in
-  creates the account; a user without an organization is sent to `/onboarding` (join an invite or
-  create one, and answer "What do you mainly create?"). Google needs the OAuth client from
-  TASKS.md T0.3.1 — until then, use the email link (locally the email lands in Mailpit,
-  `http://127.0.0.1:54324`).
+- **Sign-in:** an emailed magic link (A2) on `/sign-in` (locally the email lands in Mailpit,
+  `http://127.0.0.1:54324`). The first sign-in creates the account; a user without an organization
+  is sent to `/onboarding` (join an invite or create one, and answer "What do you mainly create?").
+- **Google sign-in (A1) is built but off until Phase 4** (TASKS_SECONDARY.md T4.2). `googleSignInEnabled()`
+  in `src/lib/auth/features.ts` reads the server-only `GOOGLE_SIGN_IN` env var per request: unless
+  it is `"true"`, `SignInPanel` hides the button and the "or" divider, and `signInWithGoogle`
+  refuses. The provider is also `enabled = false` in `supabase/config.toml`. To turn it on: the
+  OAuth client in `supabase/.env`, `enabled = true`, `GOOGLE_SIGN_IN="true"`, restart the stack
+  (`SETUP_ACCOUNT.md` §11). Keep the code working: don't delete the button, the action or
+  `/auth/callback`. The e2e server forces the flag off (`playwright.config.ts`).
 - **Three layers, never just one:**
   1. `src/proxy.ts` (Next 16's middleware; it must live in `src/`): refreshes the session and
      redirects — workspace needs an org, `/admin` needs a Super Admin, `/sign-in` and

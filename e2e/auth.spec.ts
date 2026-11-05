@@ -18,6 +18,12 @@ test.describe("signed out", () => {
     await expect(page.getByRole("heading", { name: "Sign in to Proc-Robot" })).toBeVisible();
   });
 
+  test("sign-in offers only the email link while Google is off", async ({ page }) => {
+    await page.goto("/sign-in");
+    await expect(page.getByRole("button", { name: "Email me a sign-in link" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue with Google" })).toHaveCount(0);
+  });
+
   test("an invalid sign-in link explains itself", async ({ page }) => {
     await page.goto("/auth/confirm?token_hash=not-a-real-token&type=email");
     await expect(page).toHaveURL(/\/sign-in\?error=link$/);

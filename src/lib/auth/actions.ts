@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { actionError, actionOk, invalidInput, type ActionResult } from "@/lib/forms/action-result";
 import { createClient } from "@/lib/supabase/server";
+import { googleSignInEnabled } from "./features";
 import { SIGN_IN_PATH, safeNextPath } from "./routes";
 import { magicLinkSchema, type MagicLinkInput } from "./schemas";
 
@@ -22,8 +23,15 @@ async function requestOrigin(): Promise<string> {
   return `${proto}://${host}`;
 }
 
-/** Starts Google sign-in (A1); Google sends the user back to /auth/callback. */
+/**
+ * Starts Google sign-in (A1); Google sends the user back to /auth/callback.
+ * Refused while the flag is off (until Phase 4), so the action can't be called
+ * directly when the button is hidden.
+ */
 export async function signInWithGoogle(next?: string): Promise<ActionResult> {
+  if (!googleSignInEnabled()) {
+    return actionError("Google sign-in is not available. Use the email link instead.");
+  }
   const supabase = await createClient();
   const callback = new URL("/auth/callback", await requestOrigin());
   callback.searchParams.set("next", safeNextPath(next));
