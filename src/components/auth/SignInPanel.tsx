@@ -14,10 +14,19 @@ import { applyActionErrors } from "@/lib/forms/apply-action-errors";
 import { GoogleIcon } from "./GoogleIcon";
 
 /**
- * Sign-in (A1 Google, A2 email link). One screen for new and returning
- * users: the first sign-in creates the account, and onboarding follows.
+ * Sign-in (A2 email link; A1 Google when `googleEnabled`). One screen for new
+ * and returning users: the first sign-in creates the account, and onboarding
+ * follows. Google stays hidden until Phase 4 (src/lib/auth/features.ts).
  */
-export function SignInPanel({ next, error }: { next: string; error?: string }) {
+export function SignInPanel({
+  next,
+  error,
+  googleEnabled,
+}: {
+  next: string;
+  error?: string;
+  googleEnabled: boolean;
+}) {
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [isGooglePending, startGoogle] = useTransition();
   const form = useForm<MagicLinkInput>({
@@ -75,23 +84,27 @@ export function SignInPanel({ next, error }: { next: string; error?: string }) {
         </p>
       )}
 
-      <Button
-        type="button"
-        variant="outline"
-        size="lg"
-        className="w-full bg-white"
-        onClick={continueWithGoogle}
-        disabled={isGooglePending}
-      >
-        <GoogleIcon />
-        Continue with Google
-      </Button>
+      {googleEnabled && (
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="w-full bg-white"
+            onClick={continueWithGoogle}
+            disabled={isGooglePending}
+          >
+            <GoogleIcon />
+            Continue with Google
+          </Button>
 
-      <div className="flex items-center gap-3 text-xs text-pr-text-tertiary" aria-hidden>
-        <span className="h-px flex-1 bg-pr-border-card" />
-        or
-        <span className="h-px flex-1 bg-pr-border-card" />
-      </div>
+          <div className="flex items-center gap-3 text-xs text-pr-text-tertiary" aria-hidden>
+            <span className="h-px flex-1 bg-pr-border-card" />
+            or
+            <span className="h-px flex-1 bg-pr-border-card" />
+          </div>
+        </>
+      )}
 
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
         <FieldGroup>

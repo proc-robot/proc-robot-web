@@ -76,7 +76,7 @@ export const ADMIN_NAV: NavGroup[] = [
         phase: "MVP",
         description:
           "Seed the catalog for pilots, review new organizations’ first items, handle reports, manage categories and units.",
-        tasks: ["T1.12.6", "T2.3.6", "T3.1.6"],
+        tasks: ["T1.12.6", "T3.3.6", "T3.7.6"],
       },
     ],
   },
@@ -134,8 +134,8 @@ export const ADMIN_NAV: NavGroup[] = [
         icon: Wallet,
         phase: "MVP",
         description:
-          "Credit ledgers and manual adjustments now; Stripe subscriptions, packs and the webhook log in P3.",
-        tasks: ["T1.12.11", "T3.3.10"],
+          "Credit ledgers and manual adjustments now; Stripe subscriptions, packs and the webhook log in P2.",
+        tasks: ["T1.12.11", "T2.1.10"],
       },
       {
         label: "Platform settings",

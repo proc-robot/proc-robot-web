@@ -1,5 +1,5 @@
 -- Tenancy: organizations, profiles, invites, the JWT claims hook, onboarding
--- and plan helpers. TASKS.md T0.2.4, T0.3.4, T0.3.5, T0.3.6 (database side),
+-- and plan helpers. TASKS.md T0.2.4, T0.3.3, T0.3.4, T0.3.5 (database side),
 -- T0.4.2, T0.5.2, T0.5.3.
 --
 -- One organization per user, many users per organization. Users never write
@@ -17,7 +17,7 @@ create table public.organizations (
   default_currency text not null check (default_currency ~ '^[A-Z]{3}$'),
   address text,
   tax_id text,
-  -- Public supplier profile (O2): shown to other orgs from P2.
+  -- Public supplier profile (O2): shown to other orgs from P3.
   email text,
   whatsapp_number text check (whatsapp_number ~ '^\+[1-9][0-9]{6,14}$'),
   website text,
@@ -481,7 +481,7 @@ $$;
 
 -- Owner/Admin invites someone by email (O3). Inviting an address that
 -- already has an open invite refreshes it (the "resend"). Pending invites
--- hold a seat. The invite email itself is sent by the worker (P2) or the
+-- hold a seat. The invite email itself is sent by the worker (T1.11.2) or the
 -- Auth invite flow; this records the invite and returns its id.
 create function public.invite_member(p_email text, p_org_role public.org_role default 'member')
 returns uuid

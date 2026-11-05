@@ -40,6 +40,9 @@ export default defineConfig({
       url: baseURL,
       reuseExistingServer: !process.env.CI,
       timeout: 240_000,
+      // The specs check the default sign-in (magic link only), whatever
+      // .env.local says. Process env wins over .env files in Next.
+      env: { GOOGLE_SIGN_IN: "false" },
     },
     // The background worker (the sibling repo), for the worker check
     // (T0.6.8). Connects as procrobot_worker with the local password from

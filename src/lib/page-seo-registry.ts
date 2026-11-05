@@ -13,7 +13,7 @@
  * to stand on its own in a search result: they are checked against
  * `TITLE_RANGE` / `DESCRIPTION_RANGE` (src/lib/seo/metadata.ts) on /admin/seo.
  *
- * Planned entries (TASKS.md T1.13.4–T1.13.5): pricing, contact, privacy, terms.
+ * Planned entries (TASKS.md T1.13.4; TASKS_SECONDARY.md T4.4.1): pricing, contact, privacy, terms.
  */
 export const STATIC_PAGE_SEO_DEFS = [
   {

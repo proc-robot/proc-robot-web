@@ -10,7 +10,7 @@ import {
 import { updateSession, withSessionCookies } from "@/lib/supabase/proxy";
 
 /**
- * The auth guard (TASKS.md T0.3.7), run before every matched request.
+ * The auth guard (TASKS.md T0.3.6), run before every matched request.
  * It must live in src/ (next to app/) — Next 16 ignores a proxy.ts at the
  * repo root.
  *
