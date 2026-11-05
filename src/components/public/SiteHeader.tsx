@@ -10,11 +10,11 @@ import { Container } from "@/components/shared/Container";
  */
 export function SiteHeader() {
   return (
-    <header className="border-b border-pr-border-card">
+    <header className="border-b border-pr-border-card bg-sidebar">
       <Container className="flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5" aria-label="Proc-Robot home">
           <Image src="/brand/proc-robot-head.png" alt="" width={36} height={36} priority />
-          <span className="font-newsreader text-[22px] font-medium tracking-tight">Proc-Robot</span>
+          <span className="font-newsreader text-[22px] font-medium tracking-tight text-white">Proc-Robot</span>
         </Link>
         <Link
           href="/sign-in"
