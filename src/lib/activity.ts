@@ -36,6 +36,21 @@ function list(items: string[]): string {
   return `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
 }
 
+function describeStatusChange(actor: string, name: string, from: string, to: string): string {
+  switch (to) {
+    case "archived":
+      return `${actor} archived ${name}`;
+    case "submitted":
+      return `${actor} marked ${name} as submitted`;
+    case "won":
+      return `${actor} marked ${name} as won`;
+    case "lost":
+      return `${actor} marked ${name} as lost`;
+    default:
+      return from === "archived" ? `${actor} restored ${name}` : `${actor} reopened ${name}`;
+  }
+}
+
 export function describeActivity({ action, actorName, metadata }: ActivityEntry): string {
   const actor = actorName ?? "Someone";
   const text = (key: string) =>
@@ -70,6 +85,12 @@ export function describeActivity({ action, actorName, metadata }: ActivityEntry)
       return `${text("name") || actor} left the organization`;
     case "account.deleted":
       return "A member deleted their account";
+    case "project.created":
+      return `${actor} created the project ${text("name")}`;
+    case "project.status_changed":
+      return describeStatusChange(actor, text("name"), text("from"), text("to"));
+    case "project.deleted":
+      return `${actor} deleted the project ${text("name")}`;
     default:
       return `${actor}: ${action}`;
   }

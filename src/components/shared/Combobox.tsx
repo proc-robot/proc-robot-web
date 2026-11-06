@@ -29,6 +29,7 @@ export function Combobox({
   searchPlaceholder = "Search…",
   emptyText = "No match.",
   invalid,
+  ariaLabel,
   className,
 }: {
   id?: string;
@@ -39,6 +40,8 @@ export function Combobox({
   searchPlaceholder?: string;
   emptyText?: string;
   invalid?: boolean;
+  /** The accessible name when no `<label>` points at it (e.g. a list filter). */
+  ariaLabel?: string;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -54,6 +57,7 @@ export function Combobox({
           role="combobox"
           aria-expanded={open}
           aria-invalid={invalid}
+          aria-label={ariaLabel}
           className={cn("w-full justify-between bg-transparent font-normal", className)}
         >
           {selected ? (

@@ -20,6 +20,7 @@ const MESSAGES: Record<string, string> = {
     "As the Owner, transfer ownership to another member first, or delete the organization.",
   confirmation_mismatch: "The name doesn't match. Type the organization's name exactly.",
   organization_not_restorable: "This organization can no longer be restored.",
+  project_not_found: "This project no longer exists.",
 };
 
 const PLAN_LIMITS: Record<string, string> = {
@@ -30,6 +31,14 @@ const PLAN_LIMITS: Record<string, string> = {
 
 /** One message per field the database checks (the `detail` of `invalid_field`). */
 export const INVALID_FIELD_MESSAGES: Record<string, string> = {
+  name: "Enter a name of up to 200 characters.",
+  contact_name: "Keep the contact's name under 120 characters.",
+  phone: "Enter the number with digits, spaces and + ( ) - . / only.",
+  notes: "Keep the notes under 2,000 characters.",
+  reference_no: "Keep the reference under 100 characters.",
+  deadline: "Enter a valid date.",
+  delivery_country: "Choose the delivery country.",
+  delivery_city: "Keep the city under 100 characters.",
   full_name: "Keep your name under 120 characters.",
   timezone: "Choose a time zone from the list.",
   address: "Keep the address under 500 characters.",

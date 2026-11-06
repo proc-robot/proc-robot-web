@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   COUNTRY_CODES,
   CURRENCY_CODES,
+  countryName,
   countryOptions,
+  placeName,
   currencyOptions,
   defaultCurrency,
 } from "./countries";
@@ -20,6 +22,17 @@ describe("countries", () => {
     expect(options.every((o) => o.label !== o.value)).toBe(true);
     const labels = options.map((o) => o.label);
     expect(labels).toEqual([...labels].sort((a, b) => a.localeCompare(b, "en")));
+  });
+
+  it("names a country by its code", () => {
+    expect(countryName("SG")).toBe("Singapore");
+    expect(countryName("not a code")).toBe("not a code");
+  });
+
+  it("names a place once when the city is the country", () => {
+    expect(placeName("Jakarta", "ID")).toBe("Jakarta, Indonesia");
+    expect(placeName("singapore", "SG")).toBe("Singapore");
+    expect(placeName(null, "SG")).toBe("Singapore");
   });
 
   it("defaults the currency from the country", () => {

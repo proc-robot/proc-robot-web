@@ -73,6 +73,22 @@ export function defaultCurrency(country: string): string {
 
 export type Option = { value: string; label: string };
 
+/** "ID" → "Indonesia" (English); the code itself if unknown. */
+export function countryName(code: string): string {
+  try {
+    return new Intl.DisplayNames(["en"], { type: "region" }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
+
+/** "Jakarta, Indonesia"; just "Singapore" when the city is the country. */
+export function placeName(city: string | null, countryCode: string): string {
+  const country = countryName(countryCode);
+  if (!city || city.trim().toLowerCase() === country.toLowerCase()) return country;
+  return `${city}, ${country}`;
+}
+
 export function countryOptions(): Option[] {
   const names = new Intl.DisplayNames(["en"], { type: "region" });
   return COUNTRY_CODES.map((code) => ({ value: code, label: names.of(code) ?? code })).sort(

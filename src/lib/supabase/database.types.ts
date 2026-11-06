@@ -294,6 +294,9 @@ isOneToOne: false
 "delete_organization":
 { Args: { "p_confirm_name": string }; Returns: string
                            },
+"duplicate_project":
+{ Args: { "p_name"?: string,"p_project_id": string }; Returns: string
+                           },
 "export_my_data":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },

@@ -41,3 +41,15 @@ export async function signInWithEmail(page: Page, email: string) {
   await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
   await page.goto(await signInLinkFor(page.request, email, since));
 }
+
+/** Signs up a new user and creates their organization in Singapore, on Starter (3 seats, 3 open projects). */
+export async function signUpWithOrganization(page: Page, email: string, organization: string) {
+  await signInWithEmail(page, email);
+  await expect(page).toHaveURL(/\/onboarding$/);
+  await page.getByLabel("Organization name").fill(organization);
+  await page.getByRole("combobox", { name: "Country" }).click();
+  await page.getByPlaceholder("Search countries…").fill("Singapore");
+  await page.getByRole("option", { name: "Singapore" }).click();
+  await page.getByRole("button", { name: "Create organization" }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+}

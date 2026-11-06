@@ -1,17 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { MEMBER_STATE, signInWithEmail } from "./support/auth";
-
-/** Signs up a new user and creates their organization (on Starter: 3 seats). */
-async function signUpWithOrganization(page: Page, email: string, organization: string) {
-  await signInWithEmail(page, email);
-  await expect(page).toHaveURL(/\/onboarding$/);
-  await page.getByLabel("Organization name").fill(organization);
-  await page.getByRole("combobox", { name: "Country" }).click();
-  await page.getByPlaceholder("Search countries…").fill("Singapore");
-  await page.getByRole("option", { name: "Singapore" }).click();
-  await page.getByRole("button", { name: "Create organization" }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
-}
+import { MEMBER_STATE, signUpWithOrganization } from "./support/auth";
 
 async function invite(page: Page, email: string, role: "Member" | "Admin" = "Member") {
   await page.getByLabel("Email address").fill(email);

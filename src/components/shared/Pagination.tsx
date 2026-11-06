@@ -16,7 +16,8 @@ function PaginationInner({ page, totalPages }: { page: number; totalPages: numbe
     const params = new URLSearchParams(searchParams.toString());
     if (p <= 1) params.delete("page");
     else params.set("page", String(p));
-    router.push(`${pathname}?${params.toString()}`);
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
   }
 
   const pages = generatePages(page, totalPages);
@@ -27,8 +28,14 @@ function PaginationInner({ page, totalPages }: { page: number; totalPages: numbe
         Page {page} of {totalPages}
       </p>
       <div className="flex items-center gap-1">
-        <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => goTo(page - 1)}>
-          <ChevronLeft className="h-4 w-4" />
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page <= 1}
+          onClick={() => goTo(page - 1)}
+          aria-label="Previous page"
+        >
+          <ChevronLeft className="h-4 w-4" aria-hidden />
         </Button>
         {pages.map((p, i) =>
           p === "..." ? (
@@ -41,6 +48,8 @@ function PaginationInner({ page, totalPages }: { page: number; totalPages: numbe
               variant={p === page ? "default" : "outline"}
               size="sm"
               onClick={() => goTo(p as number)}
+              aria-label={`Page ${p}`}
+              aria-current={p === page ? "page" : undefined}
               className="min-w-9"
             >
               {p}
@@ -52,8 +61,9 @@ function PaginationInner({ page, totalPages }: { page: number; totalPages: numbe
           size="sm"
           disabled={page >= totalPages}
           onClick={() => goTo(page + 1)}
+          aria-label="Next page"
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-4 w-4" aria-hidden />
         </Button>
       </div>
     </div>

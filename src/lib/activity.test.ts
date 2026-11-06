@@ -30,6 +30,23 @@ describe("describeActivity", () => {
     ).toBe("Leo made Ratna the Owner");
   });
 
+  it("describes project events", () => {
+    const project = (to: string, from = "active") =>
+      describeActivity(entry("project.status_changed", { name: "CCTV", from, to }));
+    expect(describeActivity(entry("project.created", { name: "CCTV" }))).toBe(
+      "Leo Tan created the project CCTV",
+    );
+    expect(project("submitted")).toBe("Leo Tan marked CCTV as submitted");
+    expect(project("won", "submitted")).toBe("Leo Tan marked CCTV as won");
+    expect(project("lost")).toBe("Leo Tan marked CCTV as lost");
+    expect(project("archived")).toBe("Leo Tan archived CCTV");
+    expect(project("active", "archived")).toBe("Leo Tan restored CCTV");
+    expect(project("active", "lost")).toBe("Leo Tan reopened CCTV");
+    expect(describeActivity(entry("project.deleted", { name: "CCTV" }))).toBe(
+      "Leo Tan deleted the project CCTV",
+    );
+  });
+
   it("names the settings areas that changed, once each", () => {
     expect(
       describeActivity(entry("organization.updated", { fields: ["email", "website", "settings"] })),
