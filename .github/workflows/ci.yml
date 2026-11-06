@@ -6,7 +6,11 @@
 #             with the worker from the sibling repo when REPOS_READ_TOKEN is set
 #             (SETUP_ACCOUNT.md §2): its branch with the same name if there is
 #             one, else its main. Without the token the worker check is skipped.
-# No hosted secrets are needed: everything runs on a local Supabase stack.
+# A fourth job, deploy-database (TASKS.md T0.7.2), runs only on a push to main,
+# after the three above pass: it applies the new migrations to the production
+# Supabase project. The three test jobs need no hosted secrets (they run on a
+# local Supabase stack); deploy-database needs SUPABASE_ACCESS_TOKEN and
+# SUPABASE_DB_PASSWORD (SETUP_ACCOUNT.md §3, T0.7.4).
 name: CI
 
 on:
@@ -163,3 +167,50 @@ jobs:
           name: playwright-results
           path: proc-robot-web/test-results
           retention-days: 7
+
+  # T0.7.2: a merge to main goes live. Vercel and Railway deploy from their Git
+  # integrations; this job moves the database. There is no staging, so keep
+  # every migration backward-compatible with the code that is still running.
+  deploy-database:
+    name: Deploy database to production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [checks, database, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Two merges in a row apply their migrations one after the other.
+    concurrency:
+      group: deploy-production-database
+      cancel-in-progress: false
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      # The project ref is not a secret (it is in the project URL).
+      SUPABASE_PROJECT_REF: cwwiyyindhymukkjbhvb
+    steps:
+      - uses: actions/checkout@v5
+      - uses: supabase/setup-cli@v3
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      # Fail loudly: an expired token must stop the deploy, never skip it quietly.
+      - name: Check the deploy secrets
+        run: |
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Repository secret $name is not set (SETUP_ACCOUNT.md §3 step 10 and §2.6)."
+              exit 1
+            fi
+          done
+      - name: Link the production project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Migrations that will be applied
+        run: supabase db push --remote --dry-run
+      - name: Apply the migrations
+        run: supabase db push --remote --yes
+      # Phase 2 adds the Stripe functions; until then there is nothing to deploy.
+      - name: Deploy Edge Functions
+        run: |
+          if [ -n "$(find supabase/functions -mindepth 2 -maxdepth 2 -name index.ts 2>/dev/null | head -1)" ]; then
+            supabase functions deploy
+          else
+            echo "No Edge Functions yet."
+          fi
