@@ -9,13 +9,14 @@ export const metadata: Metadata = { title: "Sign in" };
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; account?: string }>;
 }) {
-  const { next, error } = await searchParams;
+  const { next, error, account } = await searchParams;
   return (
     <SignInPanel
       next={safeNextPath(next)}
       googleEnabled={googleSignInEnabled()}
+      notice={account === "deleted" ? "Your account was deleted." : undefined}
       error={
         error
           ? "That sign-in link has expired or was already used. Request a new one below."

@@ -27,16 +27,30 @@ export const isFormatLocale = (value: unknown): value is FormatLocale =>
   typeof value === "string" && (FORMAT_LOCALES as readonly string[]).includes(value);
 
 /**
- * Holds the user's choice until auth exists. After that, sign-in copies
- * `profiles.format_locale` into it and the profile page writes both (T1.1.1).
+ * The user's format. Sign-in copies `profiles.format_locale` into it; the
+ * profile page and the sidebar picker write both (src/lib/format-cookies.ts).
  */
 export const FORMAT_LOCALE_COOKIE = "format_locale";
 
+/** The user's time zone (`profiles.timezone`), copied the same way. */
+export const TIME_ZONE_COOKIE = "time_zone";
+
 /**
- * UTC until `profiles.timezone` exists (T1.1.1). Always explicit, never the
+ * Until the user picks one on their profile. Always explicit, never the
  * machine's own zone, so the server and the browser render the same text.
  */
 export const DEFAULT_TIME_ZONE = "UTC";
+
+/** An IANA time zone the formatter accepts, e.g. "Asia/Jakarta". */
+export function isTimeZone(value: unknown): value is string {
+  if (typeof value !== "string" || value.length === 0 || value.length > 64) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export type FormatPrefs = { locale: FormatLocale; timeZone: string };
 export const DEFAULT_FORMAT_PREFS: FormatPrefs = {

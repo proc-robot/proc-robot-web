@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SIGN_IN_PATH } from "@/lib/auth/routes";
 import { AppShell } from "@/components/app/AppShell";
+import { RefreshAccess } from "@/components/app/RefreshAccess";
 import { AppProviders } from "@/components/providers/AppProviders";
 import { getAccount, requireMember } from "@/lib/auth/session";
 import { getFormatPrefs } from "@/lib/format-server";
@@ -21,9 +22,21 @@ export const metadata: Metadata = {
 };
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  await requireMember();
+  const claims = await requireMember();
   const account = await getAccount();
   if (!account) redirect(SIGN_IN_PATH);
+
+  // The token still names an organization the tables no longer give this
+  // user (removed by an Admin, organization deleted): refresh it, and the
+  // proxy routes on the new claims. The database already denies the access.
+  if (account.organizationId !== claims.org_id) {
+    return (
+      <div className="theme-brand flex min-h-svh items-center justify-center bg-pr-bg p-6 text-pr-ink">
+        <BodyTheme theme="brand" />
+        <RefreshAccess />
+      </div>
+    );
+  }
 
   return (
     <AppProviders formatPrefs={await getFormatPrefs()}>

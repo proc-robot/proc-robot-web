@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import type { z } from "zod";
-import { HOME_PATH } from "@/lib/auth/routes";
+import { HOME_PATH, ONBOARDING_PATH } from "@/lib/auth/routes";
 import { requireUser } from "@/lib/auth/session";
 import { actionError, invalidInput, type ActionResult } from "@/lib/forms/action-result";
 import { rpcErrorMessage } from "@/lib/forms/rpc-errors";
@@ -67,4 +67,26 @@ export async function continueToWorkspace(): Promise<void> {
   const claims = await requireUser();
   const supabase = await createClient();
   await enterWorkspace(supabase, claims.sub);
+}
+
+/** The Owner restores their deleted organization within its 30 days (O7). */
+export async function restoreOrganization(): Promise<ActionResult> {
+  const claims = await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("restore_organization");
+  if (error) return actionError(rpcErrorMessage(error));
+  return enterWorkspace(supabase, claims.sub);
+}
+
+/**
+ * Leaves an organization that was deleted, so the user can join another or
+ * create their own.
+ */
+export async function leaveDeletedOrganization(): Promise<ActionResult> {
+  await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("leave_organization");
+  if (error) return actionError(rpcErrorMessage(error));
+  await supabase.auth.refreshSession();
+  redirect(ONBOARDING_PATH);
 }

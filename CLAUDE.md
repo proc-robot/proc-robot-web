@@ -226,11 +226,17 @@ Env: copy `.env.example` → `.env.local`.
   `database.types.ts`. Never the secret key.
 - **Claims** (`getClaims()` in `session.ts`, typed in `claims.ts`) carry `org_id`, `org_role`,
   `app_role`, `plan`. They only change when the session refreshes, so any action that changes them
-  (creating or joining an org) calls `supabase.auth.refreshSession()` before redirecting.
+  (creating, joining or leaving an org, deleting it, transferring ownership) calls
+  `supabase.auth.refreshSession()` before redirecting. The proxy routes on them; **what the user may
+  do comes from the tables**: `getAccount()` returns the active `organizationId` and `orgRole` from
+  the profile, and pages decide what to offer with `isOrgAdmin(account)`, never with
+  `claims.org_role`. When the token's `org_id` no longer matches (removed by an Admin, org deleted),
+  `(app)/layout.tsx` shows `RefreshAccess`, which refreshes the session.
 - **Redirect targets** from the URL (`?next=`) always pass through `safeNextPath()`.
 - **RPC errors** become messages with `rpcErrorMessage()` (`src/lib/forms/rpc-errors.ts`).
-- Signing in copies the profile's `format_locale` into the format cookie, and changing the format
-  saves it to the profile.
+- Signing in copies the profile's `format_locale` and `timezone` into the format cookies
+  (`saveFormatCookies()`, `src/lib/format-cookies.ts`); the profile page and the format picker save
+  both places.
 
 ## Database (`supabase/`)
 
@@ -239,8 +245,10 @@ Local URLs: API `http://127.0.0.1:54321`, Postgres `127.0.0.1:54322` (`postgres`
 Leo + Ratna, Acme, a Super Admin); the local sign-in details are in that file.
 
 **Migrations** live in `supabase/migrations/` (one file per area: foundation, platform reference,
-tenancy, projects, jobs, storage). Until the first hosted `supabase db push`, they can still be
-edited; after that, every change is a new migration. Data every environment needs (plans, settings,
+tenancy, projects, jobs, storage, then one per batch of work, e.g. `*_account_organization.sql`).
+**Prod already runs them (CI's `deploy-database` job pushes every merge), so never edit a migration
+that is on `main`: every change is a new migration**, and it must work with the code still running
+(`../SETUP_ACCOUNT.md` §2.8). Data every environment needs (plans, settings,
 units, categories) goes in a migration; local demo data goes in `seed.sql`.
 
 **Rules for every migration** (the tests in `supabase/tests/database/01_schema.test.sql` enforce the
@@ -267,7 +275,10 @@ first three):
   races), so no path bypasses them. They raise `plan_limit_reached` with the limit's name in
   `detail` (`active_projects`, `seats`). Other RPC errors raise a short code as the message:
   `not_allowed`, `already_in_organization`, `invite_not_found`, `already_member`, `invalid_role`,
-  `invalid_email`, `no_organization`. The UI maps codes to messages.
+  `invalid_email`, `no_organization`, `member_not_found`, `owner_must_transfer`,
+  `confirmation_mismatch`, `organization_not_restorable`. A field the database refuses raises
+  `invalid_field` with the field in `detail` (`website`, `settings.tax_rate`). The UI maps codes to
+  messages (`rpcErrorMessage()`) and fields to form fields (`rpcFieldErrors()`).
 - **Background work**: inside the RPC, call `private.enqueue_job(org_id, queue, payload, credits)`,
   which writes `ai_jobs` and sends the pgmq message in the same transaction.
 - **Audit**: `private.audit(action, org_id, target_type, target_id, metadata)` for sensitive
@@ -275,21 +286,37 @@ first three):
 
 **Auth claims.** The custom access token hook (`public.custom_access_token_hook`, enabled in
 `config.toml` and in each hosted project's Auth → Hooks) adds `org_id`, `org_role`, `app_role`,
-`plan` and `org_status` to the JWT; the RLS helpers `auth_org_id()`, `auth_org_role()`,
-`auth_is_org_admin()` and `is_super_admin()` read them. A suspended org gets no `org_id`. Claims
-only change when the session refreshes, so **after `create_organization`, `accept_invite` or a
-plan change the client calls `supabase.auth.refreshSession()`**.
+`plan` and `org_status` to the JWT. A suspended or deleted org gets no `org_id`. Claims only change
+when the session refreshes, so **after `create_organization`, `accept_invite` or a plan change the
+client calls `supabase.auth.refreshSession()`**.
+
+**RLS helpers read the tables, not the JWT** (since the T1.1 migration): `auth_org_id()` and
+`auth_org_role()` return the caller's membership from `profiles`, only while the organization is
+`active`, so removing a member, demoting an Admin or deleting the org takes effect at once instead
+of when the token expires. `is_super_admin()` still reads `app_role` from the JWT.
 
 **Invites** are accepted by the invited, verified email address (Google or magic link proves it):
 `my_pending_invites()` lists them on the onboarding screen and `accept_invite(id)` joins. No secret
-token is stored. Pending invites hold a seat until accepted, revoked or expired (7 days).
+token is stored. Pending invites hold a seat until accepted, revoked or expired (7 days). No invite
+email is sent yet (T1.11.2): the invitee signs in with that address and finds it on onboarding.
+
+**Members and organizations** (T1.1): `revoke_invite`, `change_member_role`, `remove_member`
+(also ends the member's sessions), `leave_organization`, `transfer_ownership`,
+`delete_organization(name)` (soft delete; members lose access at once), `restore_organization`
+(Owner, within 30 days), `my_organization_state()` (for the onboarding notice). The daily
+`purge-deleted-organizations` cron removes orgs deleted 30+ days ago; their Storage files need the
+worker (T1.1.9). `delete_my_account()` deletes the auth user (an Owner first transfers, or deletes
+the org); `export_my_data()` returns the user's own data as JSON. Organization fields and
+`settings` are normalized and checked by the `organizations_validate` trigger on every write;
+`org_activity()` is the activity feed (a whitelist of audit actions any member may see).
 
 **Open projects** (`active` + `submitted`) count against the plan's `active_projects` limit;
 `won`, `lost` and `archived` don't.
 
 **Storage**: object paths start with the org id (`{org_id}/…`). Members write `spec-files` and
-`supplier-files`; Owner/Admin write `templates` and `item-images`; only the worker writes
-`generated-docs`. Size and MIME limits are set on the buckets.
+`supplier-files`; Owner/Admin write `templates`, `item-images` and `org-logos`; only the worker
+writes `generated-docs`. `avatars` is the exception: `{user_id}/…`, written by that user. Size and
+MIME limits are set on the buckets; `avatars`, `org-logos` and `item-images` are public (no SVG).
 
 **Tests** (`npm run db:test`): one file per area in `supabase/tests/database/`. Each starts with
 `begin; \ir _helpers.psql` and ends with `rollback;`. The helpers create users and orgs and sign in
@@ -321,7 +348,7 @@ stored as units per USD.
 - `ai_jobs.error` is written for the organization's members; internal errors stay in
   `jobs_dead_letter` (Super Admins only).
 - **Worker check (T0.6.8):** the dashboard's "System check" card calls `ping_worker()` and shows the
-  job live. It moves to the Super Admin's jobs monitor with the real dashboard (T1.1.7).
+  job live. It moves to the Super Admin's jobs monitor (T1.12.7).
 - The database also runs `private.sweep_stale_jobs()` every minute (pg_cron): running jobs whose
   heartbeat stopped go back to `queued`.
 
