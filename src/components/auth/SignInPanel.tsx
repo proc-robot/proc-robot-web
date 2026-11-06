@@ -21,10 +21,13 @@ import { GoogleIcon } from "./GoogleIcon";
 export function SignInPanel({
   next,
   error,
+  notice,
   googleEnabled,
 }: {
   next: string;
   error?: string;
+  /** A neutral message, e.g. after the account was deleted. */
+  notice?: string;
   googleEnabled: boolean;
 }) {
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -74,6 +77,12 @@ export function SignInPanel({
           New here? Signing in creates your account.
         </p>
       </div>
+
+      {notice && (
+        <p role="status" className="rounded-[8px] bg-pr-neutral-chip px-3 py-2 text-sm">
+          {notice}
+        </p>
+      )}
 
       {error && (
         <p

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { FORMAT_LOCALE_COOKIE, isFormatLocale } from "@/lib/format";
+import { saveFormatCookies } from "@/lib/format-cookies";
 import { createClient } from "@/lib/supabase/server";
 import { hasOrganization, type AuthClaims } from "./claims";
 import { ONBOARDING_PATH, SIGN_IN_PATH, safeNextPath } from "./routes";
@@ -9,8 +8,8 @@ type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 /**
  * After /auth/callback or /auth/confirm has created the session: copy the
- * user's number & date format from their profile into the cookie the
- * formatter reads, then send them on — to onboarding if they have no
+ * user's number & date format and time zone from their profile into the
+ * cookies the formatter reads, then send them on — to onboarding if they have no
  * organization yet.
  */
 export async function finishSignIn(supabase: Supabase, request: Request, next: string | null) {
@@ -20,16 +19,11 @@ export async function finishSignIn(supabase: Supabase, request: Request, next: s
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("format_locale")
+    .select("format_locale, timezone")
     .eq("id", claims.sub)
     .single();
-  if (profile && isFormatLocale(profile.format_locale)) {
-    (await cookies()).set(FORMAT_LOCALE_COOKIE, profile.format_locale, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-    });
+  if (profile) {
+    await saveFormatCookies({ locale: profile.format_locale, timeZone: profile.timezone });
   }
 
   const destination = hasOrganization(claims) ? safeNextPath(next) : ONBOARDING_PATH;

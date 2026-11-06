@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createFormatter, isFormatLocale } from "./format";
+import { createFormatter, isFormatLocale, isTimeZone } from "./format";
 
 const us = createFormatter();
 const id = createFormatter({ locale: "en-ID", timeZone: "UTC" });
@@ -50,5 +50,15 @@ describe("isFormatLocale", () => {
     expect(isFormatLocale("en-ID")).toBe(true);
     expect(isFormatLocale("id-ID")).toBe(false);
     expect(isFormatLocale(undefined)).toBe(false);
+  });
+});
+
+describe("isTimeZone", () => {
+  it("accepts IANA zones and refuses anything else", () => {
+    expect(isTimeZone("Asia/Jakarta")).toBe(true);
+    expect(isTimeZone("UTC")).toBe(true);
+    expect(isTimeZone("Mars/Olympus")).toBe(false);
+    expect(isTimeZone("")).toBe(false);
+    expect(isTimeZone(7)).toBe(false);
   });
 });

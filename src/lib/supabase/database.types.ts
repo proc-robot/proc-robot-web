@@ -135,14 +135,14 @@ isOneToOne: false
                   ]
                 },"organizations": {
                   Row: {
-                    "address": string | null,"country": string,"created_at": string,"default_currency": string,"deleted_at": string | null,"description": string | null,"email": string | null,"id": string,"logo_path": string | null,"name": string,"plan_id": string,"settings": NonNullable<Json>,"slug": string,"status": string,"tax_id": string | null,"updated_at": string,"verified_at": string | null,"website": string | null,"whatsapp_number": string | null
+                    "address": string | null,"category_slugs": (string)[],"country": string,"created_at": string,"default_currency": string,"deleted_at": string | null,"description": string | null,"email": string | null,"id": string,"logo_path": string | null,"name": string,"plan_id": string,"settings": NonNullable<Json>,"slug": string,"status": string,"tax_id": string | null,"updated_at": string,"verified_at": string | null,"website": string | null,"whatsapp_number": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "address"?: string | null,"country": string,"created_at"?: string,"default_currency": string,"deleted_at"?: string | null,"description"?: string | null,"email"?: string | null,"id"?: string,"logo_path"?: string | null,"name": string,"plan_id"?: string,"settings"?: NonNullable<Json>,"slug": string,"status"?: string,"tax_id"?: string | null,"updated_at"?: string,"verified_at"?: string | null,"website"?: string | null,"whatsapp_number"?: string | null
+                    "address"?: string | null,"category_slugs"?: (string)[],"country": string,"created_at"?: string,"default_currency": string,"deleted_at"?: string | null,"description"?: string | null,"email"?: string | null,"id"?: string,"logo_path"?: string | null,"name": string,"plan_id"?: string,"settings"?: NonNullable<Json>,"slug": string,"status"?: string,"tax_id"?: string | null,"updated_at"?: string,"verified_at"?: string | null,"website"?: string | null,"whatsapp_number"?: string | null
                   }
                   Update: {
-                    "address"?: string | null,"country"?: string,"created_at"?: string,"default_currency"?: string,"deleted_at"?: string | null,"description"?: string | null,"email"?: string | null,"id"?: string,"logo_path"?: string | null,"name"?: string,"plan_id"?: string,"settings"?: NonNullable<Json>,"slug"?: string,"status"?: string,"tax_id"?: string | null,"updated_at"?: string,"verified_at"?: string | null,"website"?: string | null,"whatsapp_number"?: string | null
+                    "address"?: string | null,"category_slugs"?: (string)[],"country"?: string,"created_at"?: string,"default_currency"?: string,"deleted_at"?: string | null,"description"?: string | null,"email"?: string | null,"id"?: string,"logo_path"?: string | null,"name"?: string,"plan_id"?: string,"settings"?: NonNullable<Json>,"slug"?: string,"status"?: string,"tax_id"?: string | null,"updated_at"?: string,"verified_at"?: string | null,"website"?: string | null,"whatsapp_number"?: string | null
                   }
                   Relationships: [
                     {
@@ -273,6 +273,9 @@ isOneToOne: false
 "auth_org_role":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["org_role"]
                            },
+"change_member_role":
+{ Args: { "p_org_role": Database["public"]['Enums']["org_role"],"p_user_id": string }; Returns: undefined
+                           },
 "convert_quantity":
 { Args: { "p_from": string,"p_quantity": number,"p_to": string }; Returns: number
                            },
@@ -285,19 +288,53 @@ isOneToOne: false
 "custom_access_token_hook":
 { Args: { "event": Json }; Returns: Json
                            },
+"delete_my_account":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"delete_organization":
+{ Args: { "p_confirm_name": string }; Returns: string
+                           },
+"export_my_data":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "invite_member":
 { Args: { "p_email": string,"p_org_role"?: Database["public"]['Enums']["org_role"] }; Returns: string
                            },
 "is_super_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"leave_organization":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"my_organization_state":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "deleted_at": string,"name": string,"org_role": Database["public"]['Enums']["org_role"],"organization_id": string,"purge_after": string,"status": string
+            }[]
+                           },
 "my_pending_invites":
 { Args: Record<PropertyKey, never>; Returns: {
               "expires_at": string,"invite_id": string,"invited_by_name": string,"org_role": Database["public"]['Enums']["org_role"],"organization_name": string
             }[]
                            },
+"org_activity":
+{ Args: { "p_limit"?: number }; Returns: {
+              "action": string,"actor_name": string,"id": number,"metadata": Json,"occurred_at": string,"target_type": string
+            }[]
+                           },
 "ping_worker":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"remove_member":
+{ Args: { "p_user_id": string }; Returns: undefined
+                           },
+"restore_organization":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"revoke_invite":
+{ Args: { "p_invite_id": string }; Returns: undefined
+                           },
+"transfer_ownership":
+{ Args: { "p_user_id": string }; Returns: undefined
                            }
           }
           Enums: {

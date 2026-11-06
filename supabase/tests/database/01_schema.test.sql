@@ -47,15 +47,15 @@ select results_eq(
 
 select results_eq(
   $$select id || ':' || public::text from storage.buckets order by id$$,
-  array['generated-docs:false', 'item-images:true', 'spec-files:false', 'supplier-files:false',
-        'templates:false'],
-  'the buckets exist; only item-images is public'
+  array['avatars:true', 'generated-docs:false', 'item-images:true', 'org-logos:true',
+        'spec-files:false', 'supplier-files:false', 'templates:false'],
+  'the buckets exist; only images (item images, avatars, logos) are public'
 );
 
 select results_eq(
   $$select jobname::text from cron.job order by jobname$$,
-  array['fx-rates-request', 'fx-rates-store', 'sweep-stale-jobs'],
-  'the FX refresh and the stale-job sweeper are scheduled'
+  array['fx-rates-request', 'fx-rates-store', 'purge-deleted-organizations', 'sweep-stale-jobs'],
+  'the FX refresh, the stale-job sweeper and the org purge are scheduled'
 );
 
 select ok(

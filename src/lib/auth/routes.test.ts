@@ -14,6 +14,10 @@ describe("routeKind", () => {
     }
   });
 
+  it("protects the account page, which is reached from the account menu", () => {
+    expect(routeKind("/account")).toBe("workspace");
+  });
+
   it("treats every admin entry as admin", () => {
     for (const href of hrefs(ADMIN_NAV)) expect(routeKind(href), href).toBe("admin");
   });

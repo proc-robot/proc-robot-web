@@ -1,7 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
-import { ChevronsUpDown, LogOut } from "lucide-react";
+import Link from "next/link";
+import { ChevronsUpDown, LogOut, Settings, UserRound } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,19 +15,12 @@ import {
 import { SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { signOut } from "@/lib/auth/actions";
 import type { Account } from "@/lib/auth/session";
-
-function initials(name: string) {
-  const parts = name
-    .replace(/@.*/, "")
-    .split(/[\s._-]+/)
-    .filter(Boolean);
-  return (parts[0]?.[0] ?? "?").concat(parts[1]?.[0] ?? "").toUpperCase();
-}
+import { initials } from "@/lib/initials";
 
 /**
- * The signed-in user in the sidebar footer: name and organization, with a
- * menu holding their email and sign-out. Profile and "sign out of all
- * devices" join it with T1.1.1 / T1.1.2. One organization per user, so there
+ * The signed-in user in the sidebar footer: picture, name and organization,
+ * with a menu holding their email, their account page (T1.1.1–T1.1.3), the
+ * organization's settings and sign-out. One organization per user, so there
  * is nothing to switch (TASKS.md T0.1.8).
  */
 export function AccountMenu({ account }: { account: Account }) {
@@ -42,12 +37,12 @@ export function AccountMenu({ account }: { account: Account }) {
             aria-label={`Account: ${account.name}`}
             className="data-[state=open]:bg-sidebar-accent"
           >
-            <span
-              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground"
-              aria-hidden
-            >
-              {initials(account.name)}
-            </span>
+            <Avatar className="size-8 shrink-0">
+              {account.avatarUrl && <AvatarImage src={account.avatarUrl} alt="" />}
+              <AvatarFallback className="bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground">
+                {initials(account.name)}
+              </AvatarFallback>
+            </Avatar>
             <span className="grid min-w-0 flex-1 leading-tight">
               <span className="truncate text-sm">{account.name}</span>
               {account.organizationName && (
@@ -63,6 +58,23 @@ export function AccountMenu({ account }: { account: Account }) {
             <span className="text-xs text-muted-foreground">{account.email}</span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          {account.organizationId && (
+            <>
+              <DropdownMenuItem asChild>
+                <Link href="/account">
+                  <UserRound aria-hidden />
+                  Your account
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/settings">
+                  <Settings aria-hidden />
+                  Organization settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuItem disabled={isPending} onSelect={() => startTransition(() => signOut())}>
             <LogOut aria-hidden />
             Sign out

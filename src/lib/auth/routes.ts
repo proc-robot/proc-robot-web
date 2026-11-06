@@ -25,6 +25,7 @@ export const WORKSPACE_PREFIXES = [
   "/templates",
   "/billing",
   "/settings",
+  "/account",
 ] as const;
 
 export type RouteKind =
