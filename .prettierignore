@@ -21,3 +21,6 @@ src/lib/supabase/database.types.ts
 
 # Email HTML is hand-tuned for mail clients.
 supabase/templates/
+
+# Supabase CLI state (`supabase link`), git-ignored.
+supabase/.temp/

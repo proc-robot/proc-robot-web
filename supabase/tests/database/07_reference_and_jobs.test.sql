@@ -1,7 +1,7 @@
 -- Reference data, platform settings, the FX refresh and job enqueueing.
 begin;
 \ir _helpers.psql
-select plan(15);
+select plan(17);
 
 select tests.create_user('member@a.example') as member \gset
 select tests.create_org(:'member', 'Org A') as org_a \gset
@@ -22,6 +22,10 @@ select is(public.convert_quantity(10, 'ft', 'm'), 3.048::numeric, '10 ft = 3.048
 select is(public.convert_quantity(2, 'dozen', 'pcs'), 24::numeric, '2 dozen = 24 pcs');
 select is(public.convert_quantity(1, 'roll', 'm'), null, 'a roll has no fixed length');
 select is(public.convert_quantity(1, 'kg', 'm'), null, 'different dimensions never convert');
+select results_eq(
+  $$select code from public.units where 'ttk' = any (aliases) or 'titik' = any (aliases)$$,
+  array['point'], 'installation points ("ttk", "titik") are a unit');
+select is(public.convert_quantity(4, 'point', 'pcs'), null, 'a point never converts to pieces');
 
 select results_eq(
   $$select p.slug || ':' || count(c.*) from public.categories p

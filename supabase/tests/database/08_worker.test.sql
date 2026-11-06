@@ -96,8 +96,8 @@ select lives_ok(
              insert into public.item_lists (organization_id, project_id, document_id, title)
              values (%L, 'e0000000-0000-4000-8000-00000000000a', 'f0000000-0000-4000-8000-00000000000a', 'BOQ')
              returning id)
-           insert into public.list_items (organization_id, item_list_id, position, name, quantity, unit_code)
-           select %L, id, 0, 'Dome camera', 4, 'pcs' from list$$, :'org_a', :'org_a'),
+           insert into public.list_items (organization_id, item_list_id, position, section, name, quantity, unit_code)
+           select %L, id, 0, 'B. Installation › Floor 2', 'Dome camera', 4, 'pcs' from list$$, :'org_a', :'org_a'),
   'it writes an item list and its items');
 select throws_ok(
   format($$insert into public.item_lists (organization_id, project_id, title)

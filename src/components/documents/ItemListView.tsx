@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { CircleAlert, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,6 +18,8 @@ const CONFIDENCE_THRESHOLD = 0.8;
 export type ItemRow = {
   id: string;
   position: number;
+  /** The document headings it sits under ("B. Installation › I. Floor 1"), or null. */
+  section: string | null;
   name: string;
   description: string | null;
   specs: Record<string, string>;
@@ -46,7 +49,8 @@ const uncertain = (item: ItemRow, field: string) =>
 /**
  * One extracted item list, read-only (D2–D5): every item with its specs,
  * quantity and unit, how sure the reading is, the validation flags and where
- * it came from. Editing and confirming arrive with the review screen (T1.3.10).
+ * it came from, grouped under the document's own headings. Editing and
+ * confirming arrive with the review screen (T1.3.10).
  */
 export function ItemListView({ list }: { list: ItemListSummary }) {
   const flagged = list.items.filter((item) => item.flags.length > 0).length;
@@ -106,83 +110,95 @@ export function ItemListView({ list }: { list: ItemListSummary }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {list.items.map((item) => (
-              <TableRow
-                key={item.id}
-                className={cn("align-top", item.flags.length > 0 && "bg-pr-warm-tint/60")}
-              >
-                <TableCell className="text-pr-text-tertiary tabular-nums">
-                  {item.position + 1}
-                </TableCell>
-                <TableCell className="max-w-[20rem] whitespace-normal">
-                  <p className={cn("font-medium", uncertain(item, "name") && "text-pr-warm")}>
-                    {item.name}
-                  </p>
-                  {item.description && item.description !== item.name && (
-                    <p className="text-xs text-pr-text-tertiary">{item.description}</p>
-                  )}
-                  {item.flags.length > 0 && (
-                    <ul className="mt-1.5 space-y-0.5">
-                      {item.flags.map((flag, index) => (
-                        <li key={index} className="flex items-start gap-1 text-xs text-pr-warm">
-                          {flag.code === "low_confidence" ? (
-                            <TriangleAlert className="mt-px size-3.5 shrink-0" aria-hidden />
-                          ) : (
-                            <CircleAlert className="mt-px size-3.5 shrink-0" aria-hidden />
-                          )}
-                          {flag.message}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </TableCell>
-                <TableCell
-                  className={cn(
-                    "max-w-[18rem] whitespace-normal",
-                    uncertain(item, "specs") && "text-pr-warm",
-                  )}
+            {list.items.map((item, index) => (
+              <Fragment key={item.id}>
+                {item.section && item.section !== list.items[index - 1]?.section && (
+                  <TableRow className="bg-pr-bg hover:bg-pr-bg">
+                    <TableHead
+                      colSpan={7}
+                      scope="colgroup"
+                      className="h-auto py-2 text-xs font-semibold whitespace-normal text-pr-text-secondary"
+                    >
+                      {item.section}
+                    </TableHead>
+                  </TableRow>
+                )}
+                <TableRow
+                  className={cn("align-top", item.flags.length > 0 && "bg-pr-warm-tint/60")}
                 >
-                  {Object.keys(item.specs).length === 0 ? (
-                    <span className="text-pr-text-tertiary">—</span>
-                  ) : (
-                    <dl className="grid grid-cols-[auto_1fr] gap-x-2 text-xs">
-                      {Object.entries(item.specs).map(([key, value]) => (
-                        <div key={key} className="contents">
-                          <dt className="text-pr-text-tertiary">{key.replace(/_/g, " ")}</dt>
-                          <dd>{value}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  )}
-                </TableCell>
-                <TableCell
-                  className={cn(
-                    "text-right tabular-nums",
-                    uncertain(item, "quantity") && "font-medium text-pr-warm",
-                  )}
-                >
-                  {item.quantity ?? <span className="text-pr-text-tertiary">—</span>}
-                </TableCell>
-                <TableCell className={cn(uncertain(item, "unit") && "text-pr-warm")}>
-                  {item.unitCode ?? item.unit ?? <span className="text-pr-text-tertiary">—</span>}
-                  {item.unit && item.unitCode && item.unit.toLowerCase() !== item.unitCode && (
-                    <span className="block text-xs text-pr-text-tertiary">“{item.unit}”</span>
-                  )}
-                </TableCell>
-                <TableCell
-                  className={cn(
-                    "text-right tabular-nums",
-                    (item.confidence.overall ?? 1) < CONFIDENCE_THRESHOLD
-                      ? "font-medium text-pr-warm"
-                      : "text-pr-text-secondary",
-                  )}
-                >
-                  {percent(item.confidence.overall)}
-                </TableCell>
-                <TableCell className="text-xs whitespace-nowrap text-pr-text-secondary">
-                  {describeSource(item.source)}
-                </TableCell>
-              </TableRow>
+                  <TableCell className="text-pr-text-tertiary tabular-nums">
+                    {item.position + 1}
+                  </TableCell>
+                  <TableCell className="max-w-[20rem] whitespace-normal">
+                    <p className={cn("font-medium", uncertain(item, "name") && "text-pr-warm")}>
+                      {item.name}
+                    </p>
+                    {item.description && item.description !== item.name && (
+                      <p className="text-xs text-pr-text-tertiary">{item.description}</p>
+                    )}
+                    {item.flags.length > 0 && (
+                      <ul className="mt-1.5 space-y-0.5">
+                        {item.flags.map((flag, index) => (
+                          <li key={index} className="flex items-start gap-1 text-xs text-pr-warm">
+                            {flag.code === "low_confidence" ? (
+                              <TriangleAlert className="mt-px size-3.5 shrink-0" aria-hidden />
+                            ) : (
+                              <CircleAlert className="mt-px size-3.5 shrink-0" aria-hidden />
+                            )}
+                            {flag.message}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </TableCell>
+                  <TableCell
+                    className={cn(
+                      "max-w-[18rem] whitespace-normal",
+                      uncertain(item, "specs") && "text-pr-warm",
+                    )}
+                  >
+                    {Object.keys(item.specs).length === 0 ? (
+                      <span className="text-pr-text-tertiary">—</span>
+                    ) : (
+                      <dl className="grid grid-cols-[auto_1fr] gap-x-2 text-xs">
+                        {Object.entries(item.specs).map(([key, value]) => (
+                          <div key={key} className="contents">
+                            <dt className="text-pr-text-tertiary">{key.replace(/_/g, " ")}</dt>
+                            <dd>{value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+                  </TableCell>
+                  <TableCell
+                    className={cn(
+                      "text-right tabular-nums",
+                      uncertain(item, "quantity") && "font-medium text-pr-warm",
+                    )}
+                  >
+                    {item.quantity ?? <span className="text-pr-text-tertiary">—</span>}
+                  </TableCell>
+                  <TableCell className={cn(uncertain(item, "unit") && "text-pr-warm")}>
+                    {item.unitCode ?? item.unit ?? <span className="text-pr-text-tertiary">—</span>}
+                    {item.unit && item.unitCode && item.unit.toLowerCase() !== item.unitCode && (
+                      <span className="block text-xs text-pr-text-tertiary">“{item.unit}”</span>
+                    )}
+                  </TableCell>
+                  <TableCell
+                    className={cn(
+                      "text-right tabular-nums",
+                      (item.confidence.overall ?? 1) < CONFIDENCE_THRESHOLD
+                        ? "font-medium text-pr-warm"
+                        : "text-pr-text-secondary",
+                    )}
+                  >
+                    {percent(item.confidence.overall)}
+                  </TableCell>
+                  <TableCell className="text-xs whitespace-nowrap text-pr-text-secondary">
+                    {describeSource(item.source)}
+                  </TableCell>
+                </TableRow>
+              </Fragment>
             ))}
           </TableBody>
         </Table>

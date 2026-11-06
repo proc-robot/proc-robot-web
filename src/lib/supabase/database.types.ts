@@ -245,14 +245,14 @@ isOneToOne: false
                   ]
                 },"list_items": {
                   Row: {
-                    "confidence": NonNullable<Json>,"created_at": string,"description": string | null,"embedding": string | null,"id": string,"item_list_id": string,"name": string,"notes": string | null,"organization_id": string,"position": number,"quantity": number | null,"source_ref": NonNullable<Json>,"specs": NonNullable<Json>,"unit": string | null,"unit_code": string | null,"updated_at": string,"validation_flags": NonNullable<Json>
+                    "confidence": NonNullable<Json>,"created_at": string,"description": string | null,"embedding": string | null,"id": string,"item_list_id": string,"name": string,"notes": string | null,"organization_id": string,"position": number,"quantity": number | null,"section": string | null,"source_ref": NonNullable<Json>,"specs": NonNullable<Json>,"unit": string | null,"unit_code": string | null,"updated_at": string,"validation_flags": NonNullable<Json>
                   }
                   ComputedFields: never
                   Insert: {
-                    "confidence"?: NonNullable<Json>,"created_at"?: string,"description"?: string | null,"embedding"?: string | null,"id"?: string,"item_list_id": string,"name": string,"notes"?: string | null,"organization_id"?: string,"position": number,"quantity"?: number | null,"source_ref"?: NonNullable<Json>,"specs"?: NonNullable<Json>,"unit"?: string | null,"unit_code"?: string | null,"updated_at"?: string,"validation_flags"?: NonNullable<Json>
+                    "confidence"?: NonNullable<Json>,"created_at"?: string,"description"?: string | null,"embedding"?: string | null,"id"?: string,"item_list_id": string,"name": string,"notes"?: string | null,"organization_id"?: string,"position": number,"quantity"?: number | null,"section"?: string | null,"source_ref"?: NonNullable<Json>,"specs"?: NonNullable<Json>,"unit"?: string | null,"unit_code"?: string | null,"updated_at"?: string,"validation_flags"?: NonNullable<Json>
                   }
                   Update: {
-                    "confidence"?: NonNullable<Json>,"created_at"?: string,"description"?: string | null,"embedding"?: string | null,"id"?: string,"item_list_id"?: string,"name"?: string,"notes"?: string | null,"organization_id"?: string,"position"?: number,"quantity"?: number | null,"source_ref"?: NonNullable<Json>,"specs"?: NonNullable<Json>,"unit"?: string | null,"unit_code"?: string | null,"updated_at"?: string,"validation_flags"?: NonNullable<Json>
+                    "confidence"?: NonNullable<Json>,"created_at"?: string,"description"?: string | null,"embedding"?: string | null,"id"?: string,"item_list_id"?: string,"name"?: string,"notes"?: string | null,"organization_id"?: string,"position"?: number,"quantity"?: number | null,"section"?: string | null,"source_ref"?: NonNullable<Json>,"specs"?: NonNullable<Json>,"unit"?: string | null,"unit_code"?: string | null,"updated_at"?: string,"validation_flags"?: NonNullable<Json>
                   }
                   Relationships: [
                     {

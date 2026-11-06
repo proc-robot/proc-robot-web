@@ -27,7 +27,7 @@ export default async function ItemsTab({ params }: { params: Promise<{ id: strin
     supabase
       .from("item_lists")
       .select(
-        "id, title, status, issues, created_at, documents_in(file_name), list_items(id, position, name, description, specs, quantity, unit, unit_code, source_ref, confidence, validation_flags)",
+        "id, title, status, issues, created_at, documents_in(file_name), list_items(id, position, section, name, description, specs, quantity, unit, unit_code, source_ref, confidence, validation_flags)",
       )
       .eq("organization_id", claims.org_id)
       .eq("project_id", id)
@@ -48,6 +48,7 @@ export default async function ItemsTab({ params }: { params: Promise<{ id: strin
     items: row.list_items.map((item) => ({
       id: item.id,
       position: item.position,
+      section: item.section,
       name: item.name,
       description: item.description,
       specs: Object.fromEntries(
