@@ -42,10 +42,12 @@ test("a member uploads a BOQ, sees the estimate, has its items read and checks t
       csv(
         "boq-tower.csv",
         "No,Description,Brand,Qty,Unit\n" +
+          "A.,Main equipment,,,\n" +
           "1,IP dome camera 4MP,Hikvision,24,unit\n" +
           "2,NVR 32 channel,Hikvision,1,set\n" +
-          "3,Cat6 cable,,305,Mtr\n" +
-          "4,Patch panel 24 port,,,pcs\n",
+          "B.,Cabling,,,\n" +
+          "1,Cat6 cable,,305,Mtr\n" +
+          "2,Patch panel 24 port,,,pcs\n",
       ),
     );
   await expect(page.getByText("boq-tower.csv")).toBeVisible();
@@ -53,7 +55,7 @@ test("a member uploads a BOQ, sees the estimate, has its items read and checks t
   // The worker counts the rows; the estimate appears (1 credit per 25 rows).
   const read = page.getByRole("button", { name: "Read items · 1 credit" });
   await expect(read).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText(/4 rows · 1 KB/)).toBeVisible();
+  await expect(page.getByText(/6 rows · 1 KB/)).toBeVisible();
   await read.click();
   const dialog = page.getByRole("alertdialog");
   await expect(dialog).toContainText("This uses 1 credit");
@@ -68,7 +70,10 @@ test("a member uploads a BOQ, sees the estimate, has its items read and checks t
   await expect(list.getByRole("row", { name: /IP dome camera 4MP/ })).toContainText("Hikvision");
   await expect(list.getByRole("row", { name: /Cat6 cable/ })).toContainText("“Mtr”");
   await expect(list.getByRole("row", { name: /Patch panel/ })).toContainText("No quantity.");
-  await expect(list.getByRole("row", { name: /NVR 32 channel/ })).toContainText("Sheet1 · row 3");
+  await expect(list.getByRole("row", { name: /NVR 32 channel/ })).toContainText("Sheet1 · row 4");
+  // Items stay under the document's own headings.
+  await expect(list.getByRole("columnheader", { name: "A. Main equipment" })).toBeVisible();
+  await expect(list.getByRole("columnheader", { name: "B. Cabling" })).toBeVisible();
 
   await page.goto("/dashboard");
   await expect(

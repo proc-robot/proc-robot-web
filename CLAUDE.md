@@ -340,8 +340,10 @@ the daily `grant-plan-credits` cron resets the plan bucket each month (top-ups s
 and a trigger sets `estimated_credits`. `extract_document()` reserves them and queues `extract`;
 `retry_document()` and `delete_document()` handle failures and removal. Document status: `uploaded →
 ready → extracting → extracted` or `failed` (with a reason for members). The worker writes
-`item_lists` (one per document, `needs_review`) and `list_items` (`specs`, `source_ref`, `confidence`,
-`validation_flags`). Members only read them until the review screen (T1.3.10).
+`item_lists` (one per document, `needs_review`) and `list_items` (`section`, `specs`, `source_ref`,
+`confidence`, `validation_flags`). `section` holds the document's headings above the item, joined with
+" › " ("B. Installation › I. Floor 1"); the Items tab groups by it. Members only read them until the
+review screen (T1.3.10).
 
 **Storage**: object paths start with the org id (`{org_id}/…`). Members write `spec-files` and
 `supplier-files`; Owner/Admin write `templates`, `item-images` and `org-logos`; only the worker
