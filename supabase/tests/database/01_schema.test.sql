@@ -41,7 +41,8 @@ select is_empty(
 
 select results_eq(
   $$select queue_name::text from pgmq.list_queues() order by 1$$,
-  array['analyze_template', 'extract', 'import_price_list', 'ping', 'price_discovery', 'render_document'],
+  array['analyze_template', 'extract', 'import_price_list', 'inspect_document', 'ping', 'price_discovery',
+        'render_document'],
   'the MVP queues exist'
 );
 
@@ -54,8 +55,9 @@ select results_eq(
 
 select results_eq(
   $$select jobname::text from cron.job order by jobname$$,
-  array['fx-rates-request', 'fx-rates-store', 'purge-deleted-organizations', 'sweep-stale-jobs'],
-  'the FX refresh, the stale-job sweeper and the org purge are scheduled'
+  array['fx-rates-request', 'fx-rates-store', 'grant-plan-credits', 'purge-deleted-organizations',
+        'sweep-stale-jobs'],
+  'the FX refresh, plan credits, the org purge and the stale-job sweeper are scheduled'
 );
 
 select ok(

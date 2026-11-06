@@ -151,12 +151,15 @@ jobs:
         run: supabase start -x "$SUPABASE_EXCLUDE"
       - name: App environment from the local stack
         run: |
-          eval "$(supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY)=')"
+          eval "$(supabase status -o env | grep -E '^(API_URL|PUBLISHABLE_KEY|SECRET_KEY)=')"
           {
             echo "NEXT_PUBLIC_SITE_URL=https://proc-robot.com"
             echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
             echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
           } > .env.local
+          # The worker downloads uploaded documents from the local Storage.
+          echo "::add-mask::$SECRET_KEY"
+          echo "WORKER_SUPABASE_SECRET_KEY=$SECRET_KEY" >> "$GITHUB_ENV"
 
       - name: Playwright
         run: npm run test:e2e

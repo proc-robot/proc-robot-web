@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-import { HAS_WORKER, WORKER_DIR } from "./e2e/support/worker";
+import { HAS_WORKER, localSecretKey, WORKER_DIR } from "./e2e/support/worker";
 
 /**
  * End-to-end tests in `e2e/`, run against a production build (`next build` +
@@ -45,9 +45,10 @@ export default defineConfig({
       env: { GOOGLE_SIGN_IN: "false" },
     },
     // The background worker (the sibling repo), for the worker check
-    // (T0.6.8). Connects as procrobot_worker with the local password from
-    // supabase/seed.sql. Without the repo next to this one, e2e/worker.spec.ts
-    // is skipped.
+    // (T0.6.8) and document extraction (T1.3). Connects as procrobot_worker
+    // with the local password from supabase/seed.sql, and reads documents
+    // without AI (EXTRACTION_FAKE). Without the repo next to this one, the
+    // specs that need it are skipped.
     ...(HAS_WORKER
       ? [
           {
@@ -62,6 +63,10 @@ export default defineConfig({
               DATABASE_URL:
                 process.env.WORKER_DATABASE_URL ??
                 "postgresql://procrobot_worker:worker-local@127.0.0.1:54322/postgres",
+              SUPABASE_URL: process.env.WORKER_SUPABASE_URL ?? "http://127.0.0.1:54321",
+              SUPABASE_SECRET_KEY: localSecretKey() ?? "",
+              EXTRACTION_FAKE: "true",
+              ANTHROPIC_API_KEY: "",
             },
           },
         ]

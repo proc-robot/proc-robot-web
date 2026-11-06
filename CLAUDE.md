@@ -276,7 +276,9 @@ first three):
   `detail` (`active_projects`, `seats`). Other RPC errors raise a short code as the message:
   `not_allowed`, `already_in_organization`, `invite_not_found`, `already_member`, `invalid_role`,
   `invalid_email`, `no_organization`, `member_not_found`, `owner_must_transfer`,
-  `confirmation_mismatch`, `organization_not_restorable`, `project_not_found`. A field the database refuses raises
+  `confirmation_mismatch`, `organization_not_restorable`, `project_not_found`, `project_archived`,
+  `invalid_file`, `unsupported_file`, `file_not_found`, `document_not_found`, `document_not_ready`,
+  `document_busy`, and `insufficient_credits` (the credits left in `detail`). A field the database refuses raises
   `invalid_field` with the field in `detail` (`website`, `settings.tax_rate`). The UI maps codes to
   messages (`rpcErrorMessage()`) and fields to form fields (`rpcFieldErrors()`).
 - **Background work**: inside the RPC, call `private.enqueue_job(org_id, queue, payload, credits)`,
@@ -323,6 +325,23 @@ project as a new open one (customer, place, notes; not the reference or deadline
 the activity feed, only when a user is signed in. Status changes are plain updates of `status`.
 **Workspace queries always filter by `organization_id`**: RLS also shows a Super Admin every other
 organization's rows.
+
+**Credits** (T1.10.1–T1.10.4): `credit_balances` (plan and top-up buckets) and the append-only
+`credit_ledger`, written only by `private` functions. An RPC that starts paid work calls
+`private.reserve_credits(org, amount, job, reason)` (plan credits first; raises
+`insufficient_credits`) after `enqueue_job(…, credits)`; when the job ends, the `ai_jobs_finished`
+trigger settles it once: it keeps `credits_consumed` (never more than reserved) and refunds the rest,
+top-up first; a failed or cancelled job refunds everything. New orgs get their plan's monthly credits;
+the daily `grant-plan-credits` cron resets the plan bucket each month (top-ups stay).
+`estimate_credits(action, units, scanned)` prices actions from `platform_settings.credit_rates`.
+
+**Documents** (T1.3): the browser uploads to `spec-files/{org}/{project}/{uuid}.{ext}` and calls
+`register_document()`, which queues a free `inspect_document` job; the worker records pages or rows
+and a trigger sets `estimated_credits`. `extract_document()` reserves them and queues `extract`;
+`retry_document()` and `delete_document()` handle failures and removal. Document status: `uploaded →
+ready → extracting → extracted` or `failed` (with a reason for members). The worker writes
+`item_lists` (one per document, `needs_review`) and `list_items` (`specs`, `source_ref`, `confidence`,
+`validation_flags`). Members only read them until the review screen (T1.3.10).
 
 **Storage**: object paths start with the org id (`{org_id}/…`). Members write `spec-files` and
 `supplier-files`; Owner/Admin write `templates`, `item-images` and `org-logos`; only the worker

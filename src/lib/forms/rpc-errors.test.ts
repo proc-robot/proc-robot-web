@@ -11,6 +11,12 @@ describe("rpcErrorMessage", () => {
     );
   });
 
+  it("says how many credits are left", () => {
+    expect(rpcErrorMessage({ message: "insufficient_credits", details: "12" })).toBe(
+      "Not enough credits: 12 left. Plan credits renew every month.",
+    );
+  });
+
   it("maps known codes and hides everything else", () => {
     expect(rpcErrorMessage({ message: "invite_not_found" })).toMatch(/no longer valid/);
     expect(rpcErrorMessage({ message: 'duplicate key value violates unique constraint "x"' })).toBe(

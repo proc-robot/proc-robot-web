@@ -7,14 +7,14 @@ export type Database = {
           Tables: {
             "ai_jobs": {
                   Row: {
-                    "attempts": number,"cost_usd": number | null,"created_at": string,"created_by": string | null,"credits_consumed": number | null,"credits_reserved": number,"error": string | null,"finished_at": string | null,"heartbeat_at": string | null,"id": string,"input_tokens": number | null,"msg_id": number | null,"organization_id": string,"output_tokens": number | null,"payload": NonNullable<Json>,"progress": number,"progress_message": string | null,"queue": string,"result": Json | null,"started_at": string | null,"status": Database["public"]['Enums']["job_status"],"updated_at": string
+                    "attempts": number,"cost_usd": number | null,"created_at": string,"created_by": string | null,"credits_consumed": number | null,"credits_reserved": number,"credits_settled_at": string | null,"error": string | null,"finished_at": string | null,"heartbeat_at": string | null,"id": string,"input_tokens": number | null,"msg_id": number | null,"organization_id": string,"output_tokens": number | null,"payload": NonNullable<Json>,"progress": number,"progress_message": string | null,"queue": string,"result": Json | null,"started_at": string | null,"status": Database["public"]['Enums']["job_status"],"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "attempts"?: number,"cost_usd"?: number | null,"created_at"?: string,"created_by"?: string | null,"credits_consumed"?: number | null,"credits_reserved"?: number,"error"?: string | null,"finished_at"?: string | null,"heartbeat_at"?: string | null,"id"?: string,"input_tokens"?: number | null,"msg_id"?: number | null,"organization_id": string,"output_tokens"?: number | null,"payload"?: NonNullable<Json>,"progress"?: number,"progress_message"?: string | null,"queue": string,"result"?: Json | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["job_status"],"updated_at"?: string
+                    "attempts"?: number,"cost_usd"?: number | null,"created_at"?: string,"created_by"?: string | null,"credits_consumed"?: number | null,"credits_reserved"?: number,"credits_settled_at"?: string | null,"error"?: string | null,"finished_at"?: string | null,"heartbeat_at"?: string | null,"id"?: string,"input_tokens"?: number | null,"msg_id"?: number | null,"organization_id": string,"output_tokens"?: number | null,"payload"?: NonNullable<Json>,"progress"?: number,"progress_message"?: string | null,"queue": string,"result"?: Json | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["job_status"],"updated_at"?: string
                   }
                   Update: {
-                    "attempts"?: number,"cost_usd"?: number | null,"created_at"?: string,"created_by"?: string | null,"credits_consumed"?: number | null,"credits_reserved"?: number,"error"?: string | null,"finished_at"?: string | null,"heartbeat_at"?: string | null,"id"?: string,"input_tokens"?: number | null,"msg_id"?: number | null,"organization_id"?: string,"output_tokens"?: number | null,"payload"?: NonNullable<Json>,"progress"?: number,"progress_message"?: string | null,"queue"?: string,"result"?: Json | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["job_status"],"updated_at"?: string
+                    "attempts"?: number,"cost_usd"?: number | null,"created_at"?: string,"created_by"?: string | null,"credits_consumed"?: number | null,"credits_reserved"?: number,"credits_settled_at"?: string | null,"error"?: string | null,"finished_at"?: string | null,"heartbeat_at"?: string | null,"id"?: string,"input_tokens"?: number | null,"msg_id"?: number | null,"organization_id"?: string,"output_tokens"?: number | null,"payload"?: NonNullable<Json>,"progress"?: number,"progress_message"?: string | null,"queue"?: string,"result"?: Json | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["job_status"],"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -59,6 +59,52 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"credit_balances": {
+                  Row: {
+                    "organization_id": string,"plan_credits": number,"plan_period_start": string | null,"topup_credits": number,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "organization_id": string,"plan_credits"?: number,"plan_period_start"?: string | null,"topup_credits"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "organization_id"?: string,"plan_credits"?: number,"plan_period_start"?: string | null,"topup_credits"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "credit_balances_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: true
+      referencedRelation: "organizations"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"credit_ledger": {
+                  Row: {
+                    "amount": number,"balance_after": number,"bucket": Database["public"]['Enums']["credit_bucket"],"created_at": string,"created_by": string | null,"entry": Database["public"]['Enums']["credit_entry"],"id": number,"job_id": string | null,"organization_id": string,"reason": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount": number,"balance_after": number,"bucket": Database["public"]['Enums']["credit_bucket"],"created_at"?: string,"created_by"?: string | null,"entry": Database["public"]['Enums']["credit_entry"],"id"?: never,"job_id"?: string | null,"organization_id": string,"reason"?: string | null
+                  }
+                  Update: {
+                    "amount"?: number,"balance_after"?: number,"bucket"?: Database["public"]['Enums']["credit_bucket"],"created_at"?: string,"created_by"?: string | null,"entry"?: Database["public"]['Enums']["credit_entry"],"id"?: never,"job_id"?: string | null,"organization_id"?: string,"reason"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "credit_ledger_job_id_fkey"
+      columns: ["job_id"]
+isOneToOne: false
+      referencedRelation: "ai_jobs"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "credit_ledger_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organizations"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"customers": {
                   Row: {
                     "address": string | null,"contact_name": string | null,"created_at": string,"email": string | null,"id": string,"name": string,"notes": string | null,"organization_id": string,"phone": string | null,"tax_id": string | null,"updated_at": string
@@ -77,6 +123,38 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "organizations"
       referencedColumns: ["id"]
+    }
+                  ]
+                },"documents_in": {
+                  Row: {
+                    "created_at": string,"error": string | null,"estimated_credits": number | null,"file_name": string,"file_path": string,"file_size": number,"file_type": string,"id": string,"job_id": string | null,"organization_id": string,"page_count": number | null,"project_id": string,"row_count": number | null,"scanned": boolean | null,"status": Database["public"]['Enums']["document_status"],"updated_at": string,"uploaded_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"error"?: string | null,"estimated_credits"?: number | null,"file_name": string,"file_path": string,"file_size": number,"file_type": string,"id"?: string,"job_id"?: string | null,"organization_id"?: string,"page_count"?: number | null,"project_id": string,"row_count"?: number | null,"scanned"?: boolean | null,"status"?: Database["public"]['Enums']["document_status"],"updated_at"?: string,"uploaded_by"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"error"?: string | null,"estimated_credits"?: number | null,"file_name"?: string,"file_path"?: string,"file_size"?: number,"file_type"?: string,"id"?: string,"job_id"?: string | null,"organization_id"?: string,"page_count"?: number | null,"project_id"?: string,"row_count"?: number | null,"scanned"?: boolean | null,"status"?: Database["public"]['Enums']["document_status"],"updated_at"?: string,"uploaded_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "documents_in_job_id_fkey"
+      columns: ["job_id"]
+isOneToOne: false
+      referencedRelation: "ai_jobs"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "documents_in_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organizations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "documents_in_organization_id_project_id_fkey"
+      columns: ["organization_id","project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["organization_id","id"]
     }
                   ]
                 },"fx_rates": {
@@ -113,6 +191,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"item_lists": {
+                  Row: {
+                    "confirmed_at": string | null,"confirmed_by": string | null,"created_at": string,"document_id": string | null,"id": string,"issues": NonNullable<Json>,"model": string | null,"organization_id": string,"project_id": string,"status": Database["public"]['Enums']["item_list_status"],"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"document_id"?: string | null,"id"?: string,"issues"?: NonNullable<Json>,"model"?: string | null,"organization_id"?: string,"project_id": string,"status"?: Database["public"]['Enums']["item_list_status"],"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"document_id"?: string | null,"id"?: string,"issues"?: NonNullable<Json>,"model"?: string | null,"organization_id"?: string,"project_id"?: string,"status"?: Database["public"]['Enums']["item_list_status"],"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "item_lists_organization_id_document_id_fkey"
+      columns: ["organization_id","document_id"]
+isOneToOne: false
+      referencedRelation: "documents_in"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "item_lists_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organizations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "item_lists_organization_id_project_id_fkey"
+      columns: ["organization_id","project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["organization_id","id"]
+    }
+                  ]
                 },"jobs_dead_letter": {
                   Row: {
                     "attempts": number,"error": string | null,"failed_at": string,"id": number,"job_id": string | null,"message": NonNullable<Json>,"msg_id": number | null,"organization_id": string | null,"queue": string,"resolved_at": string | null,"resolved_by": string | null
@@ -131,6 +241,38 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "ai_jobs"
       referencedColumns: ["id"]
+    }
+                  ]
+                },"list_items": {
+                  Row: {
+                    "confidence": NonNullable<Json>,"created_at": string,"description": string | null,"embedding": string | null,"id": string,"item_list_id": string,"name": string,"notes": string | null,"organization_id": string,"position": number,"quantity": number | null,"source_ref": NonNullable<Json>,"specs": NonNullable<Json>,"unit": string | null,"unit_code": string | null,"updated_at": string,"validation_flags": NonNullable<Json>
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "confidence"?: NonNullable<Json>,"created_at"?: string,"description"?: string | null,"embedding"?: string | null,"id"?: string,"item_list_id": string,"name": string,"notes"?: string | null,"organization_id"?: string,"position": number,"quantity"?: number | null,"source_ref"?: NonNullable<Json>,"specs"?: NonNullable<Json>,"unit"?: string | null,"unit_code"?: string | null,"updated_at"?: string,"validation_flags"?: NonNullable<Json>
+                  }
+                  Update: {
+                    "confidence"?: NonNullable<Json>,"created_at"?: string,"description"?: string | null,"embedding"?: string | null,"id"?: string,"item_list_id"?: string,"name"?: string,"notes"?: string | null,"organization_id"?: string,"position"?: number,"quantity"?: number | null,"source_ref"?: NonNullable<Json>,"specs"?: NonNullable<Json>,"unit"?: string | null,"unit_code"?: string | null,"updated_at"?: string,"validation_flags"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "list_items_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organizations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "list_items_organization_id_item_list_id_fkey"
+      columns: ["organization_id","item_list_id"]
+isOneToOne: false
+      referencedRelation: "item_lists"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "list_items_unit_code_fkey"
+      columns: ["unit_code"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["code"]
     }
                   ]
                 },"organizations": {
@@ -288,6 +430,9 @@ isOneToOne: false
 "custom_access_token_hook":
 { Args: { "event": Json }; Returns: Json
                            },
+"delete_document":
+{ Args: { "p_document_id": string }; Returns: string
+                           },
 "delete_my_account":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
@@ -297,8 +442,14 @@ isOneToOne: false
 "duplicate_project":
 { Args: { "p_name"?: string,"p_project_id": string }; Returns: string
                            },
+"estimate_credits":
+{ Args: { "p_action": string,"p_scanned"?: boolean,"p_units": number }; Returns: number
+                           },
 "export_my_data":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"extract_document":
+{ Args: { "p_document_id": string }; Returns: string
                            },
 "invite_member":
 { Args: { "p_email": string,"p_org_role"?: Database["public"]['Enums']["org_role"] }; Returns: string
@@ -327,11 +478,17 @@ isOneToOne: false
 "ping_worker":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"register_document":
+{ Args: { "p_file_name": string,"p_file_path": string,"p_project_id": string }; Returns: string
+                           },
 "remove_member":
 { Args: { "p_user_id": string }; Returns: undefined
                            },
 "restore_organization":
 { Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"retry_document":
+{ Args: { "p_document_id": string }; Returns: string
                            },
 "revoke_invite":
 { Args: { "p_invite_id": string }; Returns: undefined
@@ -341,7 +498,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "app_role": "user"|"super_admin","job_status": "queued"|"running"|"succeeded"|"failed"|"cancelled","org_role": "owner"|"admin"|"member","project_status": "active"|"submitted"|"won"|"lost"|"archived"
+            "app_role": "user"|"super_admin","credit_bucket": "plan"|"topup","credit_entry": "grant"|"expire"|"reserve"|"refund"|"topup"|"adjustment","document_status": "uploaded"|"ready"|"extracting"|"extracted"|"failed","item_list_status": "needs_review"|"confirmed","job_status": "queued"|"running"|"succeeded"|"failed"|"cancelled","org_role": "owner"|"admin"|"member","project_status": "active"|"submitted"|"won"|"lost"|"archived"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -457,7 +614,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "app_role": ["user", "super_admin"],"job_status": ["queued", "running", "succeeded", "failed", "cancelled"],"org_role": ["owner", "admin", "member"],"project_status": ["active", "submitted", "won", "lost", "archived"]
+            "app_role": ["user", "super_admin"],"credit_bucket": ["plan", "topup"],"credit_entry": ["grant", "expire", "reserve", "refund", "topup", "adjustment"],"document_status": ["uploaded", "ready", "extracting", "extracted", "failed"],"item_list_status": ["needs_review", "confirmed"],"job_status": ["queued", "running", "succeeded", "failed", "cancelled"],"org_role": ["owner", "admin", "member"],"project_status": ["active", "submitted", "won", "lost", "archived"]
           }
         }
 } as const

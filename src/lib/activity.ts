@@ -91,6 +91,8 @@ export function describeActivity({ action, actorName, metadata }: ActivityEntry)
       return describeStatusChange(actor, text("name"), text("from"), text("to"));
     case "project.deleted":
       return `${actor} deleted the project ${text("name")}`;
+    case "document.uploaded":
+      return `${actor} uploaded ${text("name")} to ${text("project") || "a project"}`;
     default:
       return `${actor}: ${action}`;
   }
