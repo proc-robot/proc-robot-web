@@ -51,9 +51,9 @@ test.describe("as a member of Kigen", () => {
     // The tabs for the later stages (W2).
     await page
       .getByRole("navigation", { name: "Project sections" })
-      .getByRole("link", { name: "Items" })
+      .getByRole("link", { name: "Prices" })
       .click();
-    await expect(page.getByRole("heading", { level: 2, name: "Items" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Prices" })).toBeVisible();
     await expect(page.getByText("Not built yet")).toBeVisible();
 
     // Found in the list by its customer's name (W3).

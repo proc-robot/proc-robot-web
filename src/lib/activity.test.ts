@@ -45,6 +45,9 @@ describe("describeActivity", () => {
     expect(describeActivity(entry("project.deleted", { name: "CCTV" }))).toBe(
       "Leo Tan deleted the project CCTV",
     );
+    expect(
+      describeActivity(entry("document.uploaded", { name: "BOQ.xlsx", project: "CCTV" })),
+    ).toBe("Leo Tan uploaded BOQ.xlsx to CCTV");
   });
 
   it("names the settings areas that changed, once each", () => {

@@ -21,6 +21,13 @@ const MESSAGES: Record<string, string> = {
   confirmation_mismatch: "The name doesn't match. Type the organization's name exactly.",
   organization_not_restorable: "This organization can no longer be restored.",
   project_not_found: "This project no longer exists.",
+  project_archived: "This project is archived. Set it back to Active to add or read documents.",
+  invalid_file: "This file can't be added. Upload it again.",
+  unsupported_file: "Upload an Excel (.xlsx, .xls), CSV or PDF file.",
+  file_not_found: "The upload didn't finish. Try again.",
+  document_not_found: "This document no longer exists.",
+  document_not_ready: "This document isn't ready to be read yet.",
+  document_busy: "Wait until the document has been read.",
 };
 
 const PLAN_LIMITS: Record<string, string> = {
@@ -65,6 +72,12 @@ export const GENERIC_ERROR = "Something went wrong. Please try again.";
 
 export function rpcErrorMessage(error: RpcError, fallback: string = GENERIC_ERROR): string {
   if (!error) return fallback;
+  if (error.message === "insufficient_credits") {
+    const left = Number(error.details);
+    return Number.isFinite(left)
+      ? `Not enough credits: ${left} left. Plan credits renew every month.`
+      : "Not enough credits. Plan credits renew every month.";
+  }
   if (error.message === "plan_limit_reached") {
     return PLAN_LIMITS[error.details ?? ""] ?? "Your plan's limit is reached. Upgrade the plan.";
   }
