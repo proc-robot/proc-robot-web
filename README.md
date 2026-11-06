@@ -26,7 +26,7 @@ npm run db:test    # database tests (RLS, plan limits, onboarding, storage, jobs
 Sign in locally with any seeded user from `supabase/seed.sql` through the email link (it arrives in
 Mailpit at http://127.0.0.1:54324), or sign up with any address.
 
-### Accounts (Supabase, Vercel, Railway, …)
+### Accounts (Supabase, Vercel, Railway, etc.)
 
 Creating and configuring every external account — including the hosted Supabase settings
 (templates, token hook, redirect URLs) and, from Phase 4, the Google OAuth client — is described in
