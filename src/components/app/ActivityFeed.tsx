@@ -4,8 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 
 /**
  * Recent organization activity (O6), newest first. Today it covers the
- * organization and its members; uploads, quotations, prices and quote
- * requests join as those features ship (they add their actions to
+ * organization, its members and its projects; uploads, quotations, prices and
+ * quote requests join as those features ship (they add their actions to
  * `org_activity()`).
  */
 export async function ActivityFeed({ limit = 15 }: { limit?: number }) {

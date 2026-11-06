@@ -276,7 +276,7 @@ first three):
   `detail` (`active_projects`, `seats`). Other RPC errors raise a short code as the message:
   `not_allowed`, `already_in_organization`, `invite_not_found`, `already_member`, `invalid_role`,
   `invalid_email`, `no_organization`, `member_not_found`, `owner_must_transfer`,
-  `confirmation_mismatch`, `organization_not_restorable`. A field the database refuses raises
+  `confirmation_mismatch`, `organization_not_restorable`, `project_not_found`. A field the database refuses raises
   `invalid_field` with the field in `detail` (`website`, `settings.tax_rate`). The UI maps codes to
   messages (`rpcErrorMessage()`) and fields to form fields (`rpcFieldErrors()`).
 - **Background work**: inside the RPC, call `private.enqueue_job(org_id, queue, payload, credits)`,
@@ -312,6 +312,17 @@ the org); `export_my_data()` returns the user's own data as JSON. Organization f
 
 **Open projects** (`active` + `submitted`) count against the plan's `active_projects` limit;
 `won`, `lost` and `archived` don't.
+
+**Projects and customers** (T1.2): every member creates and edits every project and customer (W4);
+only the Owner and Admins delete them (archiving is the everyday path). The `projects_validate` and
+`customers_validate` triggers trim every field (blank → null) and raise `invalid_field`. A
+customer's name is unique in its org in any case (`customers_org_name_key`, raises `23505`); a
+project pointing at a customer that is gone raises `23503`. `duplicate_project(id, name)` copies a
+project as a new open one (customer, place, notes; not the reference or deadline). The
+`projects_audit` trigger logs `project.created`, `project.status_changed` and `project.deleted` for
+the activity feed, only when a user is signed in. Status changes are plain updates of `status`.
+**Workspace queries always filter by `organization_id`**: RLS also shows a Super Admin every other
+organization's rows.
 
 **Storage**: object paths start with the org id (`{org_id}/…`). Members write `spec-files` and
 `supplier-files`; Owner/Admin write `templates`, `item-images` and `org-logos`; only the worker
@@ -576,17 +587,20 @@ Navigation loading is a single global `<NextTopLoader>` (accent green `#0F6B57`)
 ## Admin building blocks (`src/components/admin/`)
 
 Kept from Swillfam, Prisma-free, zinc-styled — use these instead of re-implementing:
-`AdminTable` (`columns`/`getKey`/`empty`), `PageHeader` / `EditHeader` / `Card`, `SearchInput`,
-`Pagination`, `form-fields` (`Field`, `TextareaField`, `CheckboxField`, `SelectField`, `SaveButton`,
-…), `MultiSelectField`, `ConfirmDeleteButton`, `SeoDetailsPanel`, `JsonLdPreview`. Toasts come from
-`sonner` (see above).
+`AdminTable` (`columns`/`getKey`/`empty`), `PageHeader` / `EditHeader` / `Card`, `form-fields`
+(`Field`, `TextareaField`, `CheckboxField`, `SelectField`, `SaveButton`, …), `MultiSelectField`,
+`ConfirmDeleteButton`, `SeoDetailsPanel`, `JsonLdPreview`. Toasts come from `sonner` (see above).
 
-**Every admin list page includes:**
-1. **Search** — `SearchInput` above the `Card`. It filters on typing (debounced 300ms, min 3 chars)
-   via `?q=`. The server reads `q` from `searchParams` and applies `.ilike("<column>", `%${q}%`)`.
-2. **Pagination** — `Pagination` below `AdminTable` inside the `Card`. Read `page` from
-   `searchParams`, page size 20, and query with `.range(from, to)` and `{ count: "exact" }` in the
-   same request. Type it: `searchParams: Promise<{ q?: string; page?: string }>`.
+**Every list page (workspace and admin) includes:**
+1. **Search** — `SearchInput` (`src/components/shared/`) above the list. It writes `?q=` as you
+   type (debounced 300 ms, from 2 characters), keeps the other filters and goes back to page 1.
+   The server reads `q` from `searchParams`. To search several columns with `.or()`, build the
+   pattern with `searchPattern(q)` (`src/lib/projects.ts`): it neutralizes the characters that mean
+   something in `ilike` or a PostgREST filter.
+2. **Pagination** — `Pagination` (`src/components/shared/`) below the table. Read `page` from
+   `searchParams` and query with `.range(from, to)` and `{ count: "exact" }` in the same request.
+3. More filters live in the URL too, parsed by one pure, tested function (see
+   `parseProjectFilters()` / `projectListSearch()`), so a filtered list can be shared.
 
 Every admin page and Server Action starts with the Super Admin guard once auth exists, and every
 cross-tenant read/write by a Super Admin is written to `audit_logs` (by the RPC, not the UI).
